@@ -1,0 +1,204 @@
+@model DashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<!-- Page Header -->
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Dashboard</h1>
+        <p class="page-subtitle">@DateTime.Now.ToString("dddd, d MMMM yyyy", new System.Globalization.CultureInfo("it-IT"))</p>
+    </div>
+    <a asp-controller="Clienti" asp-action="Create" class="btn-primary-brand">
+        <span class="material-icons-round me-1" style="font-size:18px">person_add</span>
+        Nuovo Cliente
+    </a>
+</div>
+
+<!-- ═══ KPI CARDS ═══ -->
+<div class="row g-4 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card bg-grad-purple">
+            <div class="stat-icon"><span class="material-icons-round">group</span></div>
+            <div class="stat-value">@Model.TotaleClienti</div>
+            <div class="stat-label">Totale Clienti</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card bg-grad-pink">
+            <div class="stat-icon"><span class="material-icons-round">how_to_reg</span></div>
+            <div class="stat-value">@Model.ClientiAttivi</div>
+            <div class="stat-label">Clienti Attivi</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card bg-grad-teal">
+            <div class="stat-icon"><span class="material-icons-round">card_membership</span></div>
+            <div class="stat-value">@Model.AbbonatiAttivi</div>
+            <div class="stat-label">Abbonamenti Attivi</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card bg-grad-orange">
+            <div class="stat-icon"><span class="material-icons-round">payments</span></div>
+            <div class="stat-value">€@Model.IncassoMese.ToString("N0")</div>
+            <div class="stat-label">Incasso del Mese</div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ SECONDARY METRICS ═══ -->
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="card p-4 h-100">
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <div style="width:48px;height:48px;border-radius:12px;background:#e8f5e9;display:flex;align-items:center;justify-content:center">
+                    <span class="material-icons-round" style="color:#2e7d32">person_add</span>
+                </div>
+                <div>
+                    <div style="font-size:1.8rem;font-weight:800;line-height:1">@Model.NuoviClientiMese</div>
+                    <div class="text-muted small">Nuovi clienti questo mese</div>
+                </div>
+            </div>
+            <a asp-controller="Clienti" asp-action="Index" class="text-decoration-none small fw-semibold" style="color:var(--clr-primary)">
+                Vedi tutti i clienti <span class="material-icons-round" style="font-size:14px;vertical-align:middle">arrow_forward</span>
+            </a>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card p-4 h-100">
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <div style="width:48px;height:48px;border-radius:12px;background:#e3f2fd;display:flex;align-items:center;justify-content:center">
+                    <span class="material-icons-round" style="color:#1565c0">euro</span>
+                </div>
+                <div>
+                    <div style="font-size:1.8rem;font-weight:800;line-height:1">€@Model.IncassoAnno.ToString("N0")</div>
+                    <div class="text-muted small">Incasso annuale @DateTime.Now.Year</div>
+                </div>
+            </div>
+            <span class="text-muted small">Da gennaio @DateTime.Now.Year ad oggi</span>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card p-4 h-100">
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <div style="width:48px;height:48px;border-radius:12px;background:#fff3e0;display:flex;align-items:center;justify-content:center">
+                    <span class="material-icons-round" style="color:#e65100">warning</span>
+                </div>
+                <div>
+                    <div style="font-size:1.8rem;font-weight:800;line-height:1">@Model.AbbonatiInScadenza.Count</div>
+                    <div class="text-muted small">Abbonamenti in scadenza (30gg)</div>
+                </div>
+            </div>
+            <span class="text-muted small">Richiedono attenzione</span>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ TABLES ═══ -->
+<div class="row g-4">
+    <!-- Ultimi Clienti -->
+    <div class="col-lg-7">
+        <div class="card h-100">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <span class="d-flex align-items-center gap-2">
+                    <span class="material-icons-round text-primary" style="font-size:20px">group</span>
+                    Ultimi Clienti Iscritti
+                </span>
+                <a asp-controller="Clienti" asp-action="Index" class="btn btn-sm btn-outline-secondary">
+                    Vedi tutti
+                </a>
+            </div>
+            <div class="table-responsive">
+                @if (Model.UltimiClienti.Any())
+                {
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Cliente</th>
+                                <th>Email</th>
+                                <th>Iscrizione</th>
+                                <th>Stato</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var c in Model.UltimiClienti)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="avatar-initials">
+                                                @(c.NomeCompleto.Length >= 2
+                                                    ? c.NomeCompleto[0].ToString().ToUpper() + c.NomeCompleto.Split(' ').LastOrDefault()?.FirstOrDefault().ToString().ToUpper()
+                                                    : c.NomeCompleto.ToUpper())
+                                            </div>
+                                            <a asp-controller="Clienti" asp-action="Details" asp-route-id="@c.Id"
+                                               class="fw-600 text-decoration-none text-dark" style="font-weight:600">
+                                                @c.NomeCompleto
+                                            </a>
+                                        </div>
+                                    </td>
+                                    <td class="text-muted small">@c.Email</td>
+                                    <td class="text-muted small">@c.DataIscrizione.ToString("dd/MM/yyyy")</td>
+                                    <td>
+                                        <span class="badge-pill @(c.Attivo ? "badge-active" : "badge-inactive")">
+                                            @(c.Attivo ? "Attivo" : "Inattivo")
+                                        </span>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+                else
+                {
+                    <div class="text-center py-5 text-muted">
+                        <span class="material-icons-round d-block mb-2" style="font-size:40px;opacity:.3">group</span>
+                        Nessun cliente ancora
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Abbonamenti in Scadenza -->
+    <div class="col-lg-5">
+        <div class="card h-100">
+            <div class="card-header d-flex align-items-center gap-2">
+                <span class="material-icons-round text-warning" style="font-size:20px;color:#ff9800!important">schedule</span>
+                Abbonamenti in Scadenza
+            </div>
+            <div class="p-3">
+                @if (Model.AbbonatiInScadenza.Any())
+                {
+                    <div class="d-flex flex-column gap-2">
+                        @foreach (var a in Model.AbbonatiInScadenza)
+                        {
+                            var urgenza = a.GiorniRimanenti <= 7 ? "badge-inactive" : a.GiorniRimanenti <= 15 ? "badge-warning" : "badge-active";
+                            <div class="d-flex align-items-center justify-content-between p-3 rounded-3" style="background:var(--clr-bg)">
+                                <div>
+                                    <div class="fw-600 small" style="font-weight:600">
+                                        <a asp-controller="Clienti" asp-action="Details" asp-route-id="@a.ClienteId"
+                                           class="text-decoration-none text-dark">@a.NomeCliente</a>
+                                    </div>
+                                    <div class="text-muted" style="font-size:.75rem">@a.TipoAbbonamento</div>
+                                </div>
+                                <div class="text-end">
+                                    <div style="font-size:.75rem;color:var(--clr-text-muted)">@a.DataScadenza.ToString("dd/MM/yyyy")</div>
+                                    <span class="badge-pill @urgenza mt-1">@a.GiorniRimanenti gg</span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center py-5 text-muted">
+                        <span class="material-icons-round d-block mb-2" style="font-size:40px;opacity:.3">check_circle</span>
+                        <div class="small">Nessun abbonamento in scadenza<br>nei prossimi 30 giorni</div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

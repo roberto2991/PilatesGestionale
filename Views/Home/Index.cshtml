@@ -1,0 +1,189 @@
+@{
+    ViewData["Title"] = "Benvenuti";
+    Layout = "_Layout";
+}
+
+<!-- ════ HERO ════ -->
+<section class="hero-section">
+    <div class="container position-relative" style="z-index:2">
+        <div class="row align-items-center g-5">
+            <div class="col-lg-7">
+                <div class="hero-badge">
+                    <span class="material-icons-round" style="font-size:14px">auto_awesome</span>
+                    Studio Pilates Professionale
+                </div>
+                <h1 class="hero-title">
+                    Trasforma il tuo corpo,<br>
+                    <span class="highlight">ritrova il benessere</span>
+                </h1>
+                <p class="hero-desc">
+                    Un percorso personalizzato di Pilates per migliorare la postura,
+                    la flessibilità e la qualità della vita. Istruttori certificati,
+                    attrezzature professionali e un ambiente accogliente.
+                </p>
+                <div class="hero-actions">
+                    <a href="#servizi" class="btn-primary-brand btn-lg">
+                        <span class="material-icons-round me-2" style="font-size:18px">explore</span>
+                        Scopri i Servizi
+                    </a>
+                    <a href="#contatti" class="btn-outline-brand btn-lg text-white border-white" style="color:#fff!important;border-color:rgba(255,255,255,.4)!important">
+                        Contattaci
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-5">
+                <div class="d-flex gap-3 justify-content-center flex-wrap">
+                    <div class="hero-float-card">
+                        <div class="num">500+</div>
+                        <div class="lbl">Clienti Soddisfatti</div>
+                    </div>
+                    <div class="hero-float-card" style="margin-top:30px">
+                        <div class="num">10+</div>
+                        <div class="lbl">Anni di Esperienza</div>
+                    </div>
+                    <div class="hero-float-card">
+                        <div class="num">20+</div>
+                        <div class="lbl">Tipi di Lezioni</div>
+                    </div>
+                    <div class="hero-float-card" style="margin-top:30px">
+                        <div class="num">98%</div>
+                        <div class="lbl">Tasso di Soddisfazione</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ════ SERVIZI ════ -->
+<section class="services-section" id="servizi">
+    <div class="container">
+        <div class="text-center mb-5">
+            <span class="section-tag">I Nostri Servizi</span>
+            <h2 class="section-title">Tutto ciò di cui hai bisogno</h2>
+            <p class="text-muted" style="max-width:540px;margin:0 auto">
+                Offriamo una gamma completa di servizi Pilates per tutti i livelli,
+                dal principiante all'atleta avanzato.
+            </p>
+        </div>
+        <div class="row g-4">
+            @{
+                var services = new[]
+                {
+                    new { Icon = "fitness_center", Color = "#7c4dff", Bg = "#ede7f6",
+                          Title = "Pilates Reformer", Desc = "Lezioni individuali e di gruppo con le attrezzature Reformer professionali per un allenamento completo." },
+                    new { Icon = "self_improvement", Color = "#ff6090", Bg = "#fce4ec",
+                          Title = "Mat Pilates", Desc = "Il classico Pilates su tappetino, ideale per la postura, il controllo del corpo e la mente." },
+                    new { Icon = "spa", Color = "#00bcd4", Bg = "#e0f7fa",
+                          Title = "Pilates Riabilitativo", Desc = "Programmi su misura per il recupero post-infortunio, gestiti da istruttori specializzati." },
+                    new { Icon = "group", Color = "#ff9800", Bg = "#fff3e0",
+                          Title = "Lezioni di Gruppo", Desc = "Classi in piccoli gruppi per un'esperienza coinvolgente e motivante, massimo 6 persone." },
+                    new { Icon = "person", Color = "#4caf50", Bg = "#e8f5e9",
+                          Title = "Sessioni Private", Desc = "Allenamento one-to-one con un istruttore dedicato per un programma completamente personalizzato." },
+                    new { Icon = "pregnant_woman", Color = "#9c27b0", Bg = "#f3e5f5",
+                          Title = "Pilates in Gravidanza", Desc = "Percorsi specifici per le future mamme, sicuri e adattati ad ogni trimestre." },
+                };
+            }
+            @foreach (var s in services)
+            {
+                <div class="col-sm-6 col-lg-4">
+                    <div class="service-card">
+                        <div class="service-icon" style="background:@s.Bg;color:@s.Color">
+                            <span class="material-icons-round">@s.Icon</span>
+                        </div>
+                        <h5 class="fw-700 mb-2" style="font-weight:700">@s.Title</h5>
+                        <p class="text-muted small mb-0">@s.Desc</p>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+<!-- ════ ORARI ════ -->
+<section style="padding:80px 0;background:var(--clr-bg)">
+    <div class="container">
+        <div class="row align-items-center g-5">
+            <div class="col-lg-5">
+                <span class="section-tag">Orari & Info</span>
+                <h2 class="section-title">Siamo aperti<br>quando ne hai bisogno</h2>
+                <p class="text-muted">Orari flessibili per adattarsi alla tua agenda lavorativa e familiare.</p>
+                <div class="d-flex flex-column gap-3 mt-4">
+                    @{
+                        var orari = new[] {
+                            ("Lunedì – Venerdì", "8:00 – 21:00"),
+                            ("Sabato", "9:00 – 18:00"),
+                            ("Domenica", "Chiuso"),
+                        };
+                    }
+                    @foreach (var (giorno, ora) in orari)
+                    {
+                        <div class="d-flex align-items-center justify-content-between card p-3">
+                            <span class="fw-600" style="font-weight:600">@giorno</span>
+                            <span class="badge-pill @(ora == "Chiuso" ? "badge-inactive" : "badge-active")">
+                                <span class="material-icons-round" style="font-size:14px">@(ora == "Chiuso" ? "block" : "schedule")</span>
+                                @ora
+                            </span>
+                        </div>
+                    }
+                </div>
+            </div>
+            <div class="col-lg-7">
+                <div class="card p-4" id="contatti">
+                    <h4 class="fw-700 mb-4" style="font-weight:700">
+                        <span class="material-icons-round me-2 text-primary" style="vertical-align:middle">contact_mail</span>
+                        Contattaci
+                    </h4>
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <label class="form-label">Nome e Cognome</label>
+                            <input type="text" class="form-control" placeholder="Mario Rossi">
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" placeholder="mario@email.it">
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label">Telefono</label>
+                            <input type="tel" class="form-control" placeholder="+39 000 000 0000">
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label">Servizio di Interesse</label>
+                            <select class="form-select">
+                                <option>Seleziona un servizio</option>
+                                <option>Pilates Reformer</option>
+                                <option>Mat Pilates</option>
+                                <option>Sessione Privata</option>
+                                <option>Altro</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Messaggio</label>
+                            <textarea class="form-control" rows="3" placeholder="Scrivi il tuo messaggio..."></textarea>
+                        </div>
+                        <div class="col-12">
+                            <button class="btn-primary-brand w-100 justify-content-center" style="padding:12px">
+                                <span class="material-icons-round me-2">send</span>
+                                Invia Messaggio
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ════ CTA ════ -->
+<section class="cta-section">
+    <div class="container">
+        <h2 class="fw-800 mb-3" style="font-weight:800">Pronto a iniziare il tuo percorso?</h2>
+        <p style="opacity:.85;max-width:500px;margin:0 auto 32px">
+            Prima lezione gratuita! Vieni a trovarci e scopri come il Pilates può cambiare la tua vita.
+        </p>
+        <a asp-controller="Account" asp-action="Login" class="btn-primary-brand btn-lg" style="background:#fff;color:var(--clr-primary)">
+            <span class="material-icons-round me-2">rocket_launch</span>
+            Prenota Ora
+        </a>
+    </div>
+</section>

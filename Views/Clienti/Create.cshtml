@@ -1,0 +1,154 @@
+@model Cliente
+@{
+    ViewData["Title"] = "Nuovo Cliente";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Nuovo Cliente</h1>
+        <p class="page-subtitle">Inserisci i dati anagrafici del nuovo cliente</p>
+    </div>
+    <a asp-action="Index" class="btn-outline-brand">
+        <span class="material-icons-round me-1" style="font-size:18px">arrow_back</span>
+        Torna alla lista
+    </a>
+</div>
+
+<form asp-action="Create" method="post">
+    @Html.AntiForgeryToken()
+
+    <div class="row g-4">
+        <!-- Dati Principali -->
+        <div class="col-lg-8">
+            <div class="card p-4">
+                <h6 class="fw-700 mb-4 d-flex align-items-center gap-2" style="font-weight:700">
+                    <span class="material-icons-round text-primary" style="font-size:20px">person</span>
+                    Dati Anagrafici
+                </h6>
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <label asp-for="Nome" class="form-label"></label>
+                        <input asp-for="Nome" class="form-control" placeholder="Mario"/>
+                        <span asp-validation-for="Nome" class="text-danger small"></span>
+                    </div>
+                    <div class="col-sm-6">
+                        <label asp-for="Cognome" class="form-label"></label>
+                        <input asp-for="Cognome" class="form-control" placeholder="Rossi"/>
+                        <span asp-validation-for="Cognome" class="text-danger small"></span>
+                    </div>
+                    <div class="col-sm-6">
+                        <label asp-for="Email" class="form-label"></label>
+                        <input asp-for="Email" class="form-control" placeholder="mario.rossi@email.it"/>
+                        <span asp-validation-for="Email" class="text-danger small"></span>
+                    </div>
+                    <div class="col-sm-6">
+                        <label asp-for="Telefono" class="form-label"></label>
+                        <input asp-for="Telefono" class="form-control" placeholder="+39 333 123 4567"/>
+                        <span asp-validation-for="Telefono" class="text-danger small"></span>
+                    </div>
+                    <div class="col-sm-6">
+                        <label asp-for="DataNascita" class="form-label"></label>
+                        <input asp-for="DataNascita" type="date" class="form-control"/>
+                        <span asp-validation-for="DataNascita" class="text-danger small"></span>
+                    </div>
+                    <div class="col-sm-6">
+                        <label asp-for="CodiceFiscale" class="form-label"></label>
+                        <input asp-for="CodiceFiscale" class="form-control" placeholder="RSSMRA80A01H501Z"
+                               style="text-transform:uppercase"/>
+                        <span asp-validation-for="CodiceFiscale" class="text-danger small"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card p-4 mt-4">
+                <h6 class="fw-700 mb-4 d-flex align-items-center gap-2" style="font-weight:700">
+                    <span class="material-icons-round text-primary" style="font-size:20px">location_on</span>
+                    Indirizzo
+                </h6>
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label asp-for="Indirizzo" class="form-label"></label>
+                        <input asp-for="Indirizzo" class="form-control" placeholder="Via Roma, 1"/>
+                        <span asp-validation-for="Indirizzo" class="text-danger small"></span>
+                    </div>
+                    <div class="col-sm-8">
+                        <label asp-for="Citta" class="form-label"></label>
+                        <input asp-for="Citta" class="form-control" placeholder="Roma"/>
+                        <span asp-validation-for="Citta" class="text-danger small"></span>
+                    </div>
+                    <div class="col-sm-4">
+                        <label asp-for="Cap" class="form-label"></label>
+                        <input asp-for="Cap" class="form-control" placeholder="00100"/>
+                        <span asp-validation-for="Cap" class="text-danger small"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card p-4 mt-4">
+                <h6 class="fw-700 mb-4 d-flex align-items-center gap-2" style="font-weight:700">
+                    <span class="material-icons-round text-primary" style="font-size:20px">notes</span>
+                    Note
+                </h6>
+                <textarea asp-for="Note" class="form-control" rows="4"
+                          placeholder="Informazioni aggiuntive, condizioni di salute, preferenze…"></textarea>
+                <span asp-validation-for="Note" class="text-danger small"></span>
+            </div>
+        </div>
+
+        <!-- Sidebar opzioni -->
+        <div class="col-lg-4">
+            <div class="card p-4">
+                <h6 class="fw-700 mb-4 d-flex align-items-center gap-2" style="font-weight:700">
+                    <span class="material-icons-round text-primary" style="font-size:20px">settings</span>
+                    Impostazioni
+                </h6>
+                <div class="form-check form-switch mb-3">
+                    <input class="form-check-input" type="checkbox" asp-for="Attivo" checked/>
+                    <label class="form-check-label" asp-for="Attivo">Cliente Attivo</label>
+                </div>
+                <p class="text-muted small">Un cliente inattivo non apparirà nelle statistiche e nelle prenotazioni.</p>
+            </div>
+
+            <!-- Riepilogo visivo -->
+            <div class="card p-4 mt-4" style="border:2px dashed var(--clr-border);box-shadow:none">
+                <div class="text-center">
+                    <div class="avatar-initials mx-auto mb-3" style="width:56px;height:56px;font-size:1.2rem" id="previewAvatar">?</div>
+                    <div class="fw-600" id="previewNome" style="font-weight:600">Nuovo Cliente</div>
+                    <div class="text-muted small" id="previewEmail">–</div>
+                </div>
+            </div>
+
+            <!-- Azioni -->
+            <div class="d-flex flex-column gap-2 mt-4">
+                <button type="submit" class="btn-primary-brand justify-content-center" style="padding:12px">
+                    <span class="material-icons-round me-2">save</span>Salva Cliente
+                </button>
+                <a asp-action="Index" class="btn btn-outline-secondary text-center" style="padding:11px;border-radius:8px">
+                    Annulla
+                </a>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+<script>
+    // Live preview
+    const nomeInput    = document.getElementById('Nome');
+    const cognomeInput = document.getElementById('Cognome');
+    const emailInput   = document.getElementById('Email');
+    const prevAvatar   = document.getElementById('previewAvatar');
+    const prevNome     = document.getElementById('previewNome');
+    const prevEmail    = document.getElementById('previewEmail');
+
+    function updatePreview() {
+        const n = nomeInput.value.trim();
+        const c = cognomeInput.value.trim();
+        prevNome.textContent  = (n || c) ? `${n} ${c}`.trim() : 'Nuovo Cliente';
+        prevAvatar.textContent = ((n ? n[0] : '') + (c ? c[0] : '')).toUpperCase() || '?';
+        prevEmail.textContent  = emailInput.value.trim() || '–';
+    }
+
+    [nomeInput, cognomeInput, emailInput].forEach(el => el?.addEventListener('input', updatePreview));
+</script>
+}

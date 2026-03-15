@@ -1,0 +1,194 @@
+@model ClienteListViewModel
+@{
+    ViewData["Title"] = "Clienti";
+}
+
+<!-- Page Header -->
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Anagrafica Clienti</h1>
+        <p class="page-subtitle">@Model.TotaleClienti client@(Model.TotaleClienti == 1 ? "e" : "i") trovati</p>
+    </div>
+    <a asp-action="Create" class="btn-primary-brand">
+        <span class="material-icons-round me-1" style="font-size:18px">person_add</span>
+        Nuovo Cliente
+    </a>
+</div>
+
+<!-- Filtri -->
+<div class="card mb-4 p-3">
+    <form method="get" class="row g-3 align-items-end">
+        <div class="col-md-6">
+            <label class="form-label">Cerca</label>
+            <div class="search-wrap">
+                <span class="material-icons-round">search</span>
+                <input type="text" name="ricerca" value="@Model.Ricerca"
+                       class="form-control" placeholder="Nome, cognome, email, telefono…"/>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Stato</label>
+            <select name="soloAttivi" class="form-select">
+                <option value="">Tutti</option>
+                <option value="true" selected="@(Model.SoloAttivi == true ? "selected" : null)">Solo attivi</option>
+                <option value="false" selected="@(Model.SoloAttivi == false ? "selected" : null)">Solo inattivi</option>
+            </select>
+        </div>
+        <div class="col-md-3 d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-fill">
+                <span class="material-icons-round me-1" style="font-size:16px">filter_list</span>Filtra
+            </button>
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                <span class="material-icons-round" style="font-size:16px">clear</span>
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Tabella -->
+<div class="table-card">
+    @if (Model.Clienti.Any())
+    {
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Cliente</th>
+                        <th>Contatti</th>
+                        <th>Città</th>
+                        <th>Iscrizione</th>
+                        <th>Stato</th>
+                        <th style="text-align:right">Azioni</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var c in Model.Clienti)
+                    {
+                        var iniziali = (c.Nome.Length > 0 ? c.Nome[0].ToString() : "") +
+                                       (c.Cognome.Length > 0 ? c.Cognome[0].ToString() : "");
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="avatar-initials">@iniziali.ToUpper()</div>
+                                    <div>
+                                        <div class="fw-600" style="font-weight:600">@c.NomeCompleto</div>
+                                        @if (!string.IsNullOrEmpty(c.CodiceFiscale))
+                                        {
+                                            <div class="text-muted" style="font-size:.72rem">CF: @c.CodiceFiscale</div>
+                                        }
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="small">
+                                    <div class="d-flex align-items-center gap-1 text-muted">
+                                        <span class="material-icons-round" style="font-size:14px">email</span>
+                                        @c.Email
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(c.Telefono))
+                                    {
+                                        <div class="d-flex align-items-center gap-1 text-muted mt-1">
+                                            <span class="material-icons-round" style="font-size:14px">phone</span>
+                                            @c.Telefono
+                                        </div>
+                                    }
+                                </div>
+                            </td>
+                            <td class="text-muted small">
+                                @if (!string.IsNullOrEmpty(c.Citta))
+                                {
+                                    <div class="d-flex align-items-center gap-1">
+                                        <span class="material-icons-round" style="font-size:14px">location_on</span>
+                                        @c.Citta
+                                    </div>
+                                }
+                                else { <span>–</span> }
+                            </td>
+                            <td class="text-muted small">@c.DataIscrizione.ToString("dd/MM/yyyy")</td>
+                            <td>
+                                <span class="badge-pill @(c.Attivo ? "badge-active" : "badge-inactive")">
+                                    <span class="material-icons-round" style="font-size:12px">@(c.Attivo ? "check_circle" : "cancel")</span>
+                                    @(c.Attivo ? "Attivo" : "Inattivo")
+                                </span>
+                            </td>
+                            <td>
+                                <div class="d-flex gap-2 justify-content-end">
+                                    <a asp-action="Details" asp-route-id="@c.Id"
+                                       class="btn btn-sm btn-outline-secondary" title="Dettagli">
+                                        <span class="material-icons-round" style="font-size:16px">visibility</span>
+                                    </a>
+                                    <a asp-action="Edit" asp-route-id="@c.Id"
+                                       class="btn btn-sm btn-outline-primary" title="Modifica">
+                                        <span class="material-icons-round" style="font-size:16px">edit</span>
+                                    </a>
+                                    <a asp-action="Delete" asp-route-id="@c.Id"
+                                       class="btn btn-sm btn-outline-danger" title="Elimina"
+                                       onclick="return confirm('Eliminare @c.NomeCompleto?')">
+                                        <span class="material-icons-round" style="font-size:16px">delete</span>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Paginazione -->
+        @if (Model.TotalePagine > 1)
+        {
+            <div class="d-flex align-items-center justify-content-between px-4 py-3 border-top">
+                <span class="text-muted small">
+                    Pagina @Model.PaginaCorrente di @Model.TotalePagine
+                </span>
+                <nav>
+                    <ul class="pagination mb-0">
+                        <li class="page-item @(Model.PaginaCorrente <= 1 ? "disabled" : "")">
+                            <a class="page-link" asp-action="Index"
+                               asp-route-pagina="@(Model.PaginaCorrente - 1)"
+                               asp-route-ricerca="@Model.Ricerca"
+                               asp-route-soloAttivi="@Model.SoloAttivi">
+                                <span class="material-icons-round" style="font-size:16px">chevron_left</span>
+                            </a>
+                        </li>
+                        @for (int i = Math.Max(1, Model.PaginaCorrente - 2);
+                              i <= Math.Min(Model.TotalePagine, Model.PaginaCorrente + 2); i++)
+                        {
+                            <li class="page-item @(i == Model.PaginaCorrente ? "active" : "")">
+                                <a class="page-link" asp-action="Index"
+                                   asp-route-pagina="@i"
+                                   asp-route-ricerca="@Model.Ricerca"
+                                   asp-route-soloAttivi="@Model.SoloAttivi">@i</a>
+                            </li>
+                        }
+                        <li class="page-item @(Model.PaginaCorrente >= Model.TotalePagine ? "disabled" : "")">
+                            <a class="page-link" asp-action="Index"
+                               asp-route-pagina="@(Model.PaginaCorrente + 1)"
+                               asp-route-ricerca="@Model.Ricerca"
+                               asp-route-soloAttivi="@Model.SoloAttivi">
+                                <span class="material-icons-round" style="font-size:16px">chevron_right</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="text-center py-5">
+            <span class="material-icons-round d-block mb-3" style="font-size:56px;color:#e0e0e0">group_off</span>
+            <h5 class="text-muted">Nessun cliente trovato</h5>
+            <p class="text-muted small">
+                @if (!string.IsNullOrEmpty(Model.Ricerca))
+                { <text>Nessun risultato per "<strong>@Model.Ricerca</strong>".</text> }
+                else
+                { <text>Inizia aggiungendo il primo cliente.</text> }
+            </p>
+            <a asp-action="Create" class="btn-primary-brand mt-2">
+                <span class="material-icons-round me-1" style="font-size:18px">person_add</span>
+                Aggiungi Cliente
+            </a>
+        </div>
+    }
+</div>

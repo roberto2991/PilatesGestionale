@@ -1,0 +1,108 @@
+@model LoginViewModel
+@{
+    ViewData["Title"] = "Accedi";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Login – Pilates Studio</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true"/>
+</head>
+<body>
+<div class="login-page">
+    <div class="login-card">
+        <!-- Logo -->
+        <div class="login-logo">
+            <span class="material-icons-round">self_improvement</span>
+        </div>
+        <h1 class="login-title">Benvenuto</h1>
+        <p class="login-subtitle">Accedi all'area riservata dello Studio</p>
+
+        <!-- Form -->
+        <form asp-action="Login" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="@ViewData["ReturnUrl"]" name="returnUrl"/>
+
+            <div asp-validation-summary="All" class="alert alert-danger mb-3" style="display:none"></div>
+            @if (!ViewData.ModelState.IsValid && ViewData.ModelState.ErrorCount > 0)
+            {
+                <div class="alert alert-danger mb-3 d-flex align-items-center gap-2">
+                    <span class="material-icons-round">error</span>
+                    <div asp-validation-summary="All"></div>
+                </div>
+            }
+
+            <div class="mb-3">
+                <label asp-for="Email" class="form-label"></label>
+                <div class="position-relative">
+                    <span class="material-icons-round position-absolute" style="left:12px;top:50%;transform:translateY(-50%);color:#9e9e9e;font-size:20px">email</span>
+                    <input asp-for="Email" class="form-control" style="padding-left:40px"
+                           placeholder="admin@pilatesstudio.it" autocomplete="username"/>
+                </div>
+                <span asp-validation-for="Email" class="text-danger small"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Password" class="form-label"></label>
+                <div class="position-relative">
+                    <span class="material-icons-round position-absolute" style="left:12px;top:50%;transform:translateY(-50%);color:#9e9e9e;font-size:20px">lock</span>
+                    <input asp-for="Password" class="form-control" style="padding-left:40px;padding-right:44px"
+                           placeholder="••••••••" autocomplete="current-password" id="pwdInput"/>
+                    <button type="button" class="btn-icon position-absolute" style="right:4px;top:50%;transform:translateY(-50%)"
+                            onclick="togglePwd()">
+                        <span class="material-icons-round" id="pwdIcon" style="font-size:20px;color:#9e9e9e">visibility</span>
+                    </button>
+                </div>
+                <span asp-validation-for="Password" class="text-danger small"></span>
+            </div>
+
+            <div class="d-flex align-items-center justify-content-between mb-4">
+                <div class="form-check">
+                    <input class="form-check-input" asp-for="RicordaMe" type="checkbox"/>
+                    <label class="form-check-label small" asp-for="RicordaMe">Ricordami</label>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-login">
+                <span class="material-icons-round me-2" style="font-size:18px;vertical-align:middle">login</span>
+                Accedi
+            </button>
+        </form>
+
+        <hr class="my-4"/>
+        <div class="text-center">
+            <a asp-controller="Home" asp-action="Index" class="text-muted small text-decoration-none d-inline-flex align-items-center gap-1">
+                <span class="material-icons-round" style="font-size:16px">arrow_back</span>
+                Torna alla Home pubblica
+            </a>
+        </div>
+
+        <!-- Default credentials hint (remove in production) -->
+        <div class="mt-4 p-3 rounded-3" style="background:#f5f5f5;font-size:.75rem;color:#9e9e9e;text-align:center">
+            <strong>Demo:</strong> admin@pilatesstudio.it / Admin123!
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+function togglePwd() {
+    const inp = document.getElementById('pwdInput');
+    const ico = document.getElementById('pwdIcon');
+    if (inp.type === 'password') {
+        inp.type = 'text';
+        ico.textContent = 'visibility_off';
+    } else {
+        inp.type = 'password';
+        ico.textContent = 'visibility';
+    }
+}
+</script>
+</body>
+</html>

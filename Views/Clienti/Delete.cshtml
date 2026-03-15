@@ -1,0 +1,72 @@
+@model Cliente
+@{
+    ViewData["Title"] = $"Elimina – {Model.NomeCompleto}";
+    var iniziali = (Model.Nome.Length > 0 ? Model.Nome[0].ToString() : "") +
+                   (Model.Cognome.Length > 0 ? Model.Cognome[0].ToString() : "");
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Elimina Cliente</h1>
+        <p class="page-subtitle">Conferma eliminazione definitiva</p>
+    </div>
+    <a asp-action="Index" class="btn-outline-brand">
+        <span class="material-icons-round me-1" style="font-size:18px">arrow_back</span>Annulla
+    </a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-7 col-lg-6">
+        <div class="card p-4">
+            <!-- Warning header -->
+            <div class="text-center mb-4">
+                <div style="width:72px;height:72px;border-radius:50%;background:#fce4ec;
+                            display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
+                    <span class="material-icons-round" style="font-size:36px;color:#c62828">warning</span>
+                </div>
+                <h4 class="fw-700" style="font-weight:700">Sei sicuro?</h4>
+                <p class="text-muted small">Questa operazione è <strong>irreversibile</strong>.<br>Tutti i dati del cliente verranno eliminati permanentemente.</p>
+            </div>
+
+            <!-- Cliente Info -->
+            <div class="d-flex align-items-center gap-3 p-3 rounded-3 mb-4" style="background:var(--clr-bg)">
+                <div class="avatar-initials" style="width:52px;height:52px;font-size:1.1rem;
+                            background:linear-gradient(135deg,#e53935,#b71c1c);color:#fff">
+                    @iniziali.ToUpper()
+                </div>
+                <div class="flex-grow-1">
+                    <div class="fw-700" style="font-weight:700">@Model.NomeCompleto</div>
+                    <div class="text-muted small">@Model.Email</div>
+                    @if (!string.IsNullOrEmpty(Model.Telefono))
+                    { <div class="text-muted small">@Model.Telefono</div> }
+                </div>
+            </div>
+
+            <!-- Dati che verranno eliminati -->
+            <div class="alert alert-danger d-flex align-items-start gap-2" style="border-radius:10px">
+                <span class="material-icons-round mt-1" style="font-size:18px;flex-shrink:0">info</span>
+                <div class="small">
+                    <strong>Verranno eliminati anche:</strong>
+                    <ul class="mb-0 mt-1 ps-3">
+                        <li>@Model.Abbonamenti.Count abbonament@(Model.Abbonamenti.Count == 1 ? "o" : "i")</li>
+                        <li>Tutti i dati anagrafici</li>
+                        <li>Storico e note</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="d-flex gap-3 mt-2">
+                <a asp-action="Index" class="btn btn-outline-secondary flex-fill d-flex align-items-center justify-content-center gap-2" style="padding:12px;border-radius:8px">
+                    <span class="material-icons-round" style="font-size:18px">arrow_back</span>Annulla
+                </a>
+                <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="flex-fill">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-danger w-100 d-flex align-items-center justify-content-center gap-2" style="padding:12px;border-radius:8px;font-weight:600">
+                        <span class="material-icons-round" style="font-size:18px">delete_forever</span>Elimina Definitivamente
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
