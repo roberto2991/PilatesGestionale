@@ -60,6 +60,10 @@ public class Cliente
     [Display(Name = "Ultimo Aggiornamento")]
     public DateTime UltimoAggiornamento { get; set; } = DateTime.UtcNow;
 
+    [StringLength(500)]
+    [Display(Name = "Foto Profilo")]
+    public string? FotoProfiloPath { get; set; }
+
     // Computed
     public string NomeCompleto => $"{Nome} {Cognome}";
     

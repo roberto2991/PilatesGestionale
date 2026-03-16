@@ -11,11 +11,51 @@ namespace PilatesStudio.Controllers;
 public class ClientiController : Controller
 {
     private readonly ApplicationDbContext _context;
+    private readonly IWebHostEnvironment _env;
     private const int PageSize = 10;
+    private static readonly string[] TipiImmagineConsentiti = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    private const long DimensioneMaxBytes = 5 * 1024 * 1024; // 5 MB
 
-    public ClientiController(ApplicationDbContext context)
+    public ClientiController(ApplicationDbContext context, IWebHostEnvironment env)
     {
         _context = context;
+        _env = env;
+    }
+
+    private async Task<string?> SalvaFotoAsync(IFormFile foto, string? vecchioPath = null)
+    {
+        if (!TipiImmagineConsentiti.Contains(foto.ContentType))
+        {
+            ModelState.AddModelError("Foto", "Formato non supportato. Usa JPG, PNG, GIF o WebP.");
+            return null;
+        }
+        if (foto.Length > DimensioneMaxBytes)
+        {
+            ModelState.AddModelError("Foto", "L'immagine non può superare i 5 MB.");
+            return null;
+        }
+
+        EliminaFileFoto(vecchioPath);
+
+        var cartella = Path.Combine(_env.WebRootPath, "uploads", "clienti");
+        Directory.CreateDirectory(cartella);
+
+        var estensione = Path.GetExtension(foto.FileName).ToLowerInvariant();
+        var nomeFile = $"{Guid.NewGuid()}{estensione}";
+        var percorsoAssoluto = Path.Combine(cartella, nomeFile);
+
+        await using var stream = new FileStream(percorsoAssoluto, FileMode.Create);
+        await foto.CopyToAsync(stream);
+
+        return $"/uploads/clienti/{nomeFile}";
+    }
+
+    private void EliminaFileFoto(string? relativePath)
+    {
+        if (string.IsNullOrEmpty(relativePath)) return;
+        var assoluto = Path.Combine(_env.WebRootPath, relativePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+        if (System.IO.File.Exists(assoluto))
+            System.IO.File.Delete(assoluto);
     }
 
     // GET: Clienti
@@ -69,7 +109,7 @@ public class ClientiController : Controller
     // POST: Clienti/Create
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(Cliente cliente)
+    public async Task<IActionResult> Create(Cliente cliente, IFormFile? foto)
     {
         if (!ModelState.IsValid) return View(cliente);
 
@@ -78,6 +118,13 @@ public class ClientiController : Controller
         {
             ModelState.AddModelError("Email", "Esiste già un cliente con questa email.");
             return View(cliente);
+        }
+
+        if (foto is { Length: > 0 })
+        {
+            var path = await SalvaFotoAsync(foto);
+            if (!ModelState.IsValid) return View(cliente);
+            cliente.FotoProfiloPath = path;
         }
 
         cliente.DataIscrizione = DateTime.UtcNow;
@@ -100,7 +147,7 @@ public class ClientiController : Controller
     // POST: Clienti/Edit/5
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, Cliente cliente)
+    public async Task<IActionResult> Edit(int id, Cliente cliente, IFormFile? foto, bool rimuoviFoto = false)
     {
         if (id != cliente.Id) return BadRequest();
         if (!ModelState.IsValid) return View(cliente);
@@ -128,6 +175,18 @@ public class ClientiController : Controller
         existing.Attivo = cliente.Attivo;
         existing.UltimoAggiornamento = DateTime.UtcNow;
 
+        if (foto is { Length: > 0 })
+        {
+            var path = await SalvaFotoAsync(foto, existing.FotoProfiloPath);
+            if (!ModelState.IsValid) return View(existing);
+            existing.FotoProfiloPath = path;
+        }
+        else if (rimuoviFoto)
+        {
+            EliminaFileFoto(existing.FotoProfiloPath);
+            existing.FotoProfiloPath = null;
+        }
+
         await _context.SaveChangesAsync();
         TempData["Success"] = $"Cliente {existing.NomeCompleto} aggiornato con successo!";
         return RedirectToAction(nameof(Index));
@@ -149,6 +208,7 @@ public class ClientiController : Controller
         var cliente = await _context.Clienti.FindAsync(id);
         if (cliente == null) return NotFound();
 
+        EliminaFileFoto(cliente.FotoProfiloPath);
         _context.Clienti.Remove(cliente);
         await _context.SaveChangesAsync();
 

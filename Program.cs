@@ -3,6 +3,9 @@ using Microsoft.EntityFrameworkCore;
 using PilatesStudio.Data;
 using PilatesStudio.Models;
 
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add MVC

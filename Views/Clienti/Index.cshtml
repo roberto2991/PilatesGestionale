@@ -69,7 +69,17 @@
                         <tr>
                             <td>
                                 <div class="d-flex align-items-center gap-3">
-                                    <div class="avatar-initials">@iniziali.ToUpper()</div>
+                                    @if (!string.IsNullOrEmpty(c.FotoProfiloPath))
+                                    {
+                                        <img id="fotoPreviewImg" src="@c.FotoProfiloPath" alt="Foto profilo"
+                                             class="avatar-initials" />
+                                    }
+                                    else
+                                    {
+                                        <div class="avatar-initials">@iniziali.ToUpper()</div>
+                                    }
+
+
                                     <div>
                                         <div class="fw-600" style="font-weight:600">@c.NomeCompleto</div>
                                         @if (!string.IsNullOrEmpty(c.CodiceFiscale))
