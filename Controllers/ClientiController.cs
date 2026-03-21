@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using PilatesStudio.Data;
 using PilatesStudio.Models;
 using PilatesStudio.Models.ViewModels;
+using PilatesStudio.Services;
 
 namespace PilatesStudio.Controllers;
 
@@ -12,14 +13,16 @@ public class ClientiController : Controller
 {
     private readonly ApplicationDbContext _context;
     private readonly IWebHostEnvironment _env;
+    private readonly DocumentoPdfService _pdfService;
     private const int PageSize = 10;
     private static readonly string[] TipiImmagineConsentiti = ["image/jpeg", "image/png", "image/gif", "image/webp"];
     private const long DimensioneMaxBytes = 5 * 1024 * 1024; // 5 MB
 
-    public ClientiController(ApplicationDbContext context, IWebHostEnvironment env)
+    public ClientiController(ApplicationDbContext context, IWebHostEnvironment env, DocumentoPdfService pdfService)
     {
         _context = context;
         _env = env;
+        _pdfService = pdfService;
     }
 
     private async Task<string?> SalvaFotoAsync(IFormFile foto, string? vecchioPath = null)
@@ -132,6 +135,19 @@ public class ClientiController : Controller
         _context.Clienti.Add(cliente);
         await _context.SaveChangesAsync();
 
+        // Genera il PDF di iscrizione precompilato
+        try
+        {
+            cliente.DocumentoContrattoPath = _pdfService.GeneraContratto(cliente);
+            await _context.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            // La creazione del cliente va a buon fine anche senza PDF
+            var logger = HttpContext.RequestServices.GetRequiredService<ILogger<ClientiController>>();
+            logger.LogWarning(ex, "Impossibile generare il PDF di iscrizione per il cliente {Id}.", cliente.Id);
+        }
+
         TempData["Success"] = $"Cliente {cliente.NomeCompleto} creato con successo!";
         return RedirectToAction(nameof(Index));
     }
@@ -209,6 +225,7 @@ public class ClientiController : Controller
         if (cliente == null) return NotFound();
 
         EliminaFileFoto(cliente.FotoProfiloPath);
+        _pdfService.EliminaContratto(cliente.DocumentoContrattoPath);
         _context.Clienti.Remove(cliente);
         await _context.SaveChangesAsync();
 
@@ -230,5 +247,71 @@ public class ClientiController : Controller
 
         TempData["Success"] = $"Stato cliente aggiornato.";
         return RedirectToAction(nameof(Index));
+    }
+
+    // GET: Clienti/DownloadContratto/5
+    public async Task<IActionResult> DownloadContratto(int id)
+    {
+        var cliente = await _context.Clienti.FindAsync(id);
+        if (cliente == null) return NotFound();
+
+        // Se il PDF non esiste ancora, lo generiamo al volo
+        if (string.IsNullOrEmpty(cliente.DocumentoContrattoPath))
+        {
+            try
+            {
+                cliente.DocumentoContrattoPath = _pdfService.GeneraContratto(cliente);
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                var logger = HttpContext.RequestServices.GetRequiredService<ILogger<ClientiController>>();
+                logger.LogError(ex, "Impossibile generare il PDF per il cliente {Id}.", id);
+                TempData["Error"] = "Impossibile generare il documento PDF.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+        }
+
+        var percorsoAssoluto = Path.Combine(
+            _env.WebRootPath,
+            cliente.DocumentoContrattoPath!.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+
+        if (!System.IO.File.Exists(percorsoAssoluto))
+        {
+            // File mancante: rigenera
+            try
+            {
+                cliente.DocumentoContrattoPath = _pdfService.GeneraContratto(cliente);
+                await _context.SaveChangesAsync();
+                percorsoAssoluto = Path.Combine(
+                    _env.WebRootPath,
+                    cliente.DocumentoContrattoPath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+            }
+            catch
+            {
+                TempData["Error"] = "Impossibile generare il documento PDF.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+        }
+
+        var nomeDownload = $"Iscrizione_{cliente.Cognome}_{cliente.Nome}_{cliente.DataIscrizione:yyyyMMdd}.pdf";
+        var fileBytes = await System.IO.File.ReadAllBytesAsync(percorsoAssoluto);
+        return File(fileBytes, "application/pdf", nomeDownload);
+    }
+
+    // POST: Clienti/RigeneraContratto/5
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RigeneraContratto(int id)
+    {
+        var cliente = await _context.Clienti.FindAsync(id);
+        if (cliente == null) return NotFound();
+
+        _pdfService.EliminaContratto(cliente.DocumentoContrattoPath);
+        cliente.DocumentoContrattoPath = _pdfService.GeneraContratto(cliente);
+        await _context.SaveChangesAsync();
+
+        TempData["Success"] = "Documento PDF rigenerato con successo.";
+        return RedirectToAction(nameof(Details), new { id });
     }
 }

@@ -64,6 +64,10 @@ public class Cliente
     [Display(Name = "Foto Profilo")]
     public string? FotoProfiloPath { get; set; }
 
+    [StringLength(500)]
+    [Display(Name = "Documento Contratto")]
+    public string? DocumentoContrattoPath { get; set; }
+
     // Computed
     public string NomeCompleto => $"{Nome} {Cognome}";
     

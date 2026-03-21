@@ -2,8 +2,13 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using PilatesStudio.Data;
 using PilatesStudio.Models;
+using PilatesStudio.Services;
+using QuestPDF.Infrastructure;
 
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
+// QuestPDF community license (gratuita per uso non commerciale / piccole realtà)
+QuestPDF.Settings.License = LicenseType.Community;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -39,6 +44,9 @@ builder.Services.ConfigureApplicationCookie(options =>
 
 // Session
 builder.Services.AddSession();
+
+// Servizi applicativi
+builder.Services.AddScoped<DocumentoPdfService>();
 
 var app = builder.Build();
 
