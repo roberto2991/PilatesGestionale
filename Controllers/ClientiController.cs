@@ -308,10 +308,64 @@ public class ClientiController : Controller
         if (cliente == null) return NotFound();
 
         _pdfService.EliminaContratto(cliente.DocumentoContrattoPath);
-        cliente.DocumentoContrattoPath = _pdfService.GeneraContratto(cliente);
+        cliente.DocumentoContrattoPath = _pdfService.GeneraContratto(cliente, cliente.FirmaPath);
         await _context.SaveChangesAsync();
 
         TempData["Success"] = "Documento PDF rigenerato con successo.";
         return RedirectToAction(nameof(Details), new { id });
+    }
+
+    // GET: Clienti/FirmaContratto/5
+    public async Task<IActionResult> FirmaContratto(int id)
+    {
+        var cliente = await _context.Clienti.FindAsync(id);
+        if (cliente == null) return NotFound();
+
+        // Assicura che il PDF esista prima di mostrare la pagina di firma
+        if (string.IsNullOrEmpty(cliente.DocumentoContrattoPath))
+        {
+            cliente.DocumentoContrattoPath = _pdfService.GeneraContratto(cliente);
+            await _context.SaveChangesAsync();
+        }
+
+        return View(cliente);
+    }
+
+    // POST: Clienti/SalvaFirma/5
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SalvaFirma(int id, [FromForm] string signatureData)
+    {
+        if (string.IsNullOrWhiteSpace(signatureData))
+            return BadRequest("Firma mancante.");
+
+        var cliente = await _context.Clienti.FindAsync(id);
+        if (cliente == null) return NotFound();
+
+        // Salva PNG firma su disco
+        var firmaCartella = Path.Combine(_env.WebRootPath, "uploads", "clienti", "firme");
+        Directory.CreateDirectory(firmaCartella);
+
+        var base64 = signatureData.Contains(',')
+            ? signatureData[(signatureData.IndexOf(',') + 1)..]
+            : signatureData;
+        var bytes = Convert.FromBase64String(base64);
+
+        var nomeFile = $"firma_{cliente.Id}_{Guid.NewGuid():N}.png";
+        var percorsoAssoluto = Path.Combine(firmaCartella, nomeFile);
+        await System.IO.File.WriteAllBytesAsync(percorsoAssoluto, bytes);
+
+        // Elimina vecchia firma se presente
+        _pdfService.EliminaFirma(cliente.FirmaPath);
+        cliente.FirmaPath = $"/uploads/clienti/firme/{nomeFile}";
+
+        // Rigenera PDF incorporando la firma
+        _pdfService.EliminaContratto(cliente.DocumentoContrattoPath);
+        cliente.DocumentoContrattoPath = _pdfService.GeneraContratto(cliente, cliente.FirmaPath);
+        cliente.UltimoAggiornamento = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        return Json(new { success = true, redirectUrl = Url.Action(nameof(Details), new { id }) });
     }
 }

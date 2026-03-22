@@ -17,14 +17,24 @@ public class DocumentoPdfService
     /// <summary>
     /// Genera il PDF di iscrizione precompilato e lo salva su disco.
     /// Restituisce il path relativo web (es. /uploads/clienti/contratti/guid.pdf).
+    /// Se <paramref name="firmaRelativePath"/> è valorizzato, incorpora l'immagine della firma nel PDF.
     /// </summary>
-    public string GeneraContratto(Cliente cliente)
+    public string GeneraContratto(Cliente cliente, string? firmaRelativePath = null)
     {
         var cartella = Path.Combine(_env.WebRootPath, "uploads", "clienti", "contratti");
         Directory.CreateDirectory(cartella);
 
         var nomeFile = $"contratto_{cliente.Id}_{Guid.NewGuid():N}.pdf";
         var percorsoAssoluto = Path.Combine(cartella, nomeFile);
+
+        string? firmaAssoluta = null;
+        if (!string.IsNullOrEmpty(firmaRelativePath))
+        {
+            firmaAssoluta = Path.Combine(
+                _env.WebRootPath,
+                firmaRelativePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+            if (!File.Exists(firmaAssoluta)) firmaAssoluta = null;
+        }
 
         var document = Document.Create(container =>
         {
@@ -35,7 +45,7 @@ public class DocumentoPdfService
                 page.DefaultTextStyle(t => t.FontFamily("Arial").FontSize(10));
 
                 page.Header().Element(ComposeHeader);
-                page.Content().Element(c => ComposeContent(c, cliente));
+                page.Content().Element(c => ComposeContent(c, cliente, firmaAssoluta));
                 page.Footer().Element(ComposeFooter);
             });
         });
@@ -71,7 +81,7 @@ public class DocumentoPdfService
         });
     }
 
-    private void ComposeContent(IContainer container, Cliente cliente)
+    private void ComposeContent(IContainer container, Cliente cliente, string? firmaAssoluta = null)
     {
         container.PaddingTop(16).Column(col =>
         {
@@ -166,8 +176,16 @@ public class DocumentoPdfService
                 });
                 row.RelativeItem().Column(c =>
                 {
-                    c.Item().Text("Firma del cliente: ________________________")
-                        .FontSize(9).AlignRight();
+                    if (firmaAssoluta != null)
+                    {
+                        c.Item().AlignRight().Text("Firma del cliente:").FontSize(9);
+                        c.Item().AlignRight().Width(160).Height(65).Image(firmaAssoluta);
+                    }
+                    else
+                    {
+                        c.Item().Text("Firma del cliente: ________________________")
+                            .FontSize(9).AlignRight();
+                    }
                 });
             });
 
@@ -204,11 +222,18 @@ public class DocumentoPdfService
         });
     }
 
+    /// <summary>Elimina il file immagine firma dal disco se esiste.</summary>
+    public void EliminaFirma(string? relativePath) => EliminaFile(relativePath);
+
     /// <summary>Elimina il file PDF dal disco se esiste.</summary>
-    public void EliminaContratto(string? relativePath)
+    public void EliminaContratto(string? relativePath) => EliminaFile(relativePath);
+
+    private void EliminaFile(string? relativePath)
     {
         if (string.IsNullOrEmpty(relativePath)) return;
-        var assoluto = Path.Combine(_env.WebRootPath, relativePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+        var assoluto = Path.Combine(
+            _env.WebRootPath,
+            relativePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
         if (File.Exists(assoluto))
             File.Delete(assoluto);
     }

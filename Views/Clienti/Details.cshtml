@@ -141,6 +141,33 @@
             @if (!string.IsNullOrEmpty(Model.DocumentoContrattoPath))
             {
                 <div class="d-flex flex-column gap-2">
+                    <!-- Stato firma -->
+                    @if (!string.IsNullOrEmpty(Model.FirmaPath))
+                    {
+                        <div class="d-flex align-items-center gap-2 px-2 py-1 rounded-2"
+                             style="background:#e8f5e9;font-size:.75rem;color:#2e7d32">
+                            <span class="material-icons-round" style="font-size:14px">verified</span>
+                            Documento firmato digitalmente
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="d-flex align-items-center gap-2 px-2 py-1 rounded-2"
+                             style="background:#fff3e0;font-size:.75rem;color:#e65100">
+                            <span class="material-icons-round" style="font-size:14px">edit_off</span>
+                            Firma digitale non ancora apposta
+                        </div>
+                    }
+
+                    <!-- Bottone firma (apre pagina dedicata) -->
+                    <a asp-action="FirmaContratto" asp-route-id="@Model.Id"
+                       class="btn btn-sm w-100 d-flex align-items-center gap-2"
+                       style="background:#6b4c9a;color:#fff;border:none"
+                       target="_blank">
+                        <span class="material-icons-round" style="font-size:16px">draw</span>
+                        @(string.IsNullOrEmpty(Model.FirmaPath) ? "Apri e firma il documento" : "Aggiorna firma")
+                    </a>
+
                     <a asp-action="DownloadContratto" asp-route-id="@Model.Id"
                        class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-2">
                         <span class="material-icons-round" style="font-size:16px">download</span>Scarica PDF
@@ -149,7 +176,7 @@
                         @Html.AntiForgeryToken()
                         <button type="submit"
                                 class="btn btn-sm btn-outline-secondary w-100 d-flex align-items-center gap-2"
-                                onclick="return confirm('Rigenera il documento PDF con i dati attuali?')">
+                                onclick="return confirm('Rigenera il documento PDF con i dati attuali? La firma digitale verrà mantenuta.')">
                             <span class="material-icons-round" style="font-size:16px">refresh</span>Rigenera PDF
                         </button>
                     </form>
