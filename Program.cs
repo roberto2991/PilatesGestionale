@@ -47,6 +47,7 @@ builder.Services.AddSession();
 
 // Servizi applicativi
 builder.Services.AddScoped<DocumentoPdfService>();
+builder.Services.AddSingleton<PilatesStudio.Services.KioskStateService>();
 
 var app = builder.Build();
 

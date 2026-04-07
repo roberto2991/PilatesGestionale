@@ -14,15 +14,17 @@ public class ClientiController : Controller
     private readonly ApplicationDbContext _context;
     private readonly IWebHostEnvironment _env;
     private readonly DocumentoPdfService _pdfService;
+    private readonly KioskStateService _kioskState;
     private const int PageSize = 10;
     private static readonly string[] TipiImmagineConsentiti = ["image/jpeg", "image/png", "image/gif", "image/webp"];
     private const long DimensioneMaxBytes = 5 * 1024 * 1024; // 5 MB
 
-    public ClientiController(ApplicationDbContext context, IWebHostEnvironment env, DocumentoPdfService pdfService)
+    public ClientiController(ApplicationDbContext context, IWebHostEnvironment env, DocumentoPdfService pdfService, KioskStateService kioskState)
     {
         _context = context;
         _env = env;
         _pdfService = pdfService;
+        _kioskState = kioskState;
     }
 
     private async Task<string?> SalvaFotoAsync(IFormFile foto, string? vecchioPath = null)
@@ -103,6 +105,7 @@ public class ClientiController : Controller
             .FirstOrDefaultAsync(c => c.Id == id);
 
         if (cliente == null) return NotFound();
+        ViewData["KioskClienteId"] = _kioskState.PendingClienteId;
         return View(cliente);
     }
 
@@ -312,6 +315,36 @@ public class ClientiController : Controller
         await _context.SaveChangesAsync();
 
         TempData["Success"] = "Documento PDF rigenerato con successo.";
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    // POST: Clienti/InviaAlKiosk/5  — invia il documento al kiosk iPad per la firma
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> InviaAlKiosk(int id)
+    {
+        var cliente = await _context.Clienti.FindAsync(id);
+        if (cliente == null) return NotFound();
+
+        // Assicura che il PDF esista prima di inviare al kiosk
+        if (string.IsNullOrEmpty(cliente.DocumentoContrattoPath))
+        {
+            cliente.DocumentoContrattoPath = _pdfService.GeneraContratto(cliente);
+            await _context.SaveChangesAsync();
+        }
+
+        _kioskState.SetCliente(id);
+        TempData["Success"] = $"Documento inviato al kiosk — {cliente.NomeCompleto} può ora firmare sull'iPad.";
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    // POST: Clienti/AnnullaKiosk  — rimuove la sessione kiosk corrente
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult AnnullaKiosk(int id)
+    {
+        _kioskState.Clear();
+        TempData["Success"] = "Sessione kiosk annullata.";
         return RedirectToAction(nameof(Details), new { id });
     }
 

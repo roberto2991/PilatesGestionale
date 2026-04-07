@@ -1,0 +1,483 @@
+@model PilatesStudio.Models.Cliente
+@{
+    Layout = "~/Views/Shared/_LayoutKiosk.cshtml";
+    ViewData["Title"] = $"Firma Documento – {Model.NomeCompleto}";
+}
+
+@section Styles {
+<style>
+    .kiosk-root {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        overflow: hidden;
+    }
+
+    /* ── Topbar ─────────────────────────────────────────── */
+    .kiosk-topbar {
+        background: #fff;
+        border-bottom: 1px solid #e0d6f0;
+        padding: 14px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-shrink: 0;
+        gap: 12px;
+    }
+    .kiosk-topbar-brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .kiosk-topbar-brand .brand-icon {
+        width: 42px; height: 42px;
+        background: linear-gradient(135deg, var(--clr-primary), var(--clr-primary-dark));
+        border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        color: #fff;
+        flex-shrink: 0;
+    }
+    .kiosk-topbar-title  { font-size: 1rem;  font-weight: 700; color: #1a1a2e; }
+    .kiosk-topbar-subtitle { font-size: .8rem; color: #888; margin-top: 1px; }
+
+    /* ── Main ───────────────────────────────────────────── */
+    .kiosk-main {
+        flex: 1;
+        display: flex;
+        overflow: hidden;
+    }
+
+    /* PDF a sinistra */
+    .kiosk-pdf-panel {
+        flex: 1 1 60%;
+        background: #525659;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    .kiosk-pdf-panel embed {
+        flex: 1;
+        width: 100%;
+        border: none;
+    }
+
+    /* Pannello firma a destra */
+    .kiosk-sign-panel {
+        flex: 0 0 400px;
+        background: #fff;
+        border-left: 1px solid #e0d6f0;
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+        padding: 28px 24px;
+        gap: 20px;
+    }
+
+    .sign-section-title {
+        font-size: .78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .7px;
+        color: var(--clr-primary);
+        margin-bottom: 8px;
+    }
+
+    /* Istruzioni */
+    .kiosk-istruzioni {
+        background: var(--clr-primary-light);
+        border-radius: 12px;
+        padding: 16px 18px;
+    }
+    .kiosk-istruzioni ol {
+        margin: 0;
+        padding-left: 20px;
+        font-size: .9rem;
+        color: var(--clr-primary-dark);
+        line-height: 1.9;
+    }
+
+    /* Canvas */
+    .canvas-wrapper {
+        position: relative;
+        border: 2px dashed #cbbfdf;
+        border-radius: 14px;
+        background: #faf8ff;
+        overflow: hidden;
+        cursor: crosshair;
+        /* Touch su iPad */
+        touch-action: none;
+    }
+    .canvas-wrapper canvas {
+        display: block;
+        width: 100%;
+        touch-action: none;
+    }
+    .canvas-placeholder {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #c0b0d8;
+        pointer-events: none;
+        transition: opacity .2s;
+    }
+    .canvas-placeholder .material-icons-round { font-size: 44px; }
+    .canvas-placeholder span { font-size: .9rem; margin-top: 8px; }
+
+    /* Stato firma */
+    .firma-stato {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: .85rem;
+        padding: 10px 14px;
+        border-radius: 10px;
+        transition: all .3s;
+        font-weight: 500;
+    }
+    .firma-stato.vuota   { background: #fff3e0; color: #e65100; }
+    .firma-stato.firmata { background: #e8f5e9; color: #2e7d32; }
+
+    /* Bottoni — touch-friendly (altezza ≥ 48px) */
+    .btn-kiosk-primary {
+        background: var(--clr-primary);
+        color: #fff;
+        border: none;
+        border-radius: 14px;
+        padding: 16px 24px;
+        font-size: 1rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        width: 100%;
+        cursor: pointer;
+        transition: background .2s, transform .1s;
+        -webkit-user-select: none;
+    }
+    .btn-kiosk-primary:active:not(:disabled) { transform: scale(.97); }
+    .btn-kiosk-primary:disabled { background: #ccc; cursor: not-allowed; }
+
+    .btn-kiosk-outline {
+        background: transparent;
+        color: var(--clr-primary);
+        border: 1.5px solid var(--clr-primary);
+        border-radius: 14px;
+        padding: 13px 20px;
+        font-size: .9rem;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+        cursor: pointer;
+        transition: background .15s;
+        -webkit-user-select: none;
+    }
+    .btn-kiosk-outline:active { background: var(--clr-primary-light); }
+
+    .firma-divider { border: none; border-top: 1px solid #f0ebf8; margin: 0; }
+
+    /* Spinner overlay */
+    .spinner-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(255,255,255,.85);
+        z-index: 999;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 16px;
+    }
+    .spinner-overlay.active { display: flex; }
+    .spinner-text {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--clr-primary);
+    }
+
+    /* Animazione spinner manuale (no Bootstrap) */
+    .kiosk-spinner {
+        width: 48px; height: 48px;
+        border: 4px solid #e0d6f0;
+        border-top-color: var(--clr-primary);
+        border-radius: 50%;
+        animation: spin .8s linear infinite;
+    }
+    @@keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Overlay "firma salvata" */
+    .done-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: linear-gradient(135deg, var(--clr-primary), var(--clr-primary-dark));
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 20px;
+        color: #fff;
+        text-align: center;
+        padding: 40px;
+    }
+    .done-overlay.active { display: flex; }
+    .done-icon {
+        width: 96px; height: 96px;
+        background: rgba(255,255,255,.2);
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .done-icon .material-icons-round { font-size: 56px; color: #fff; }
+    .done-title { font-size: 2rem; font-weight: 700; }
+    .done-subtitle { font-size: 1.1rem; opacity: .85; max-width: 400px; line-height: 1.6; }
+
+    @@media (max-width: 900px) {
+        .kiosk-main { flex-direction: column; }
+        .kiosk-pdf-panel { flex: 1 1 45vh; }
+        .kiosk-sign-panel { flex: 0 0 auto; border-left: none; border-top: 1px solid #e0d6f0; }
+    }
+</style>
+}
+
+<!-- Spinner caricamento -->
+<div class="spinner-overlay" id="spinnerOverlay">
+    <div class="kiosk-spinner"></div>
+    <div class="spinner-text">Salvataggio in corso…</div>
+</div>
+
+<!-- Overlay "Firma completata" -->
+<div class="done-overlay" id="doneOverlay">
+    <div class="done-icon">
+        <span class="material-icons-round">check_circle</span>
+    </div>
+    <div class="done-title">Firma acquisita!</div>
+    <div class="done-subtitle">
+        Grazie @Model.Nome, il documento è stato firmato con successo.<br>
+        Puoi riconsegnare l'iPad al personale.
+    </div>
+</div>
+
+<div class="kiosk-root">
+
+    <!-- Topbar -->
+    <div class="kiosk-topbar">
+        <div class="kiosk-topbar-brand">
+            <div class="brand-icon">
+                <span class="material-icons-round" style="font-size:22px">self_improvement</span>
+            </div>
+            <div>
+                <div class="kiosk-topbar-title">Documento di Iscrizione</div>
+                <div class="kiosk-topbar-subtitle">@Model.NomeCompleto</div>
+            </div>
+        </div>
+        @if (!string.IsNullOrEmpty(Model.FirmaPath))
+        {
+            <span class="firma-stato firmata" style="flex-shrink:0">
+                <span class="material-icons-round" style="font-size:16px">verified</span>
+                Già firmato
+            </span>
+        }
+    </div>
+
+    <!-- Main -->
+    <div class="kiosk-main">
+
+        <!-- PDF viewer -->
+        <div class="kiosk-pdf-panel">
+            <embed src="@Model.DocumentoContrattoPath"
+                   type="application/pdf"
+                   id="pdfViewer" />
+        </div>
+
+        <!-- Pannello firma -->
+        <div class="kiosk-sign-panel">
+
+            <!-- Istruzioni -->
+            <div class="kiosk-istruzioni">
+                <div class="sign-section-title">Come procedere</div>
+                <ol>
+                    <li>Leggi il documento a sinistra.</li>
+                    <li>Disegna la tua firma nel riquadro.</li>
+                    <li>Tocca <strong>Conferma e firma</strong>.</li>
+                </ol>
+            </div>
+
+            <hr class="firma-divider" />
+
+            <!-- Canvas firma -->
+            <div>
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="sign-section-title mb-0">La tua firma</div>
+                    <button type="button" id="btnCancella"
+                            style="background:transparent;border:1.5px solid #d0c4e8;
+                                   border-radius:8px;padding:6px 14px;font-size:.8rem;
+                                   color:#6b4c9a;cursor:pointer;display:flex;align-items:center;gap:6px">
+                        <span class="material-icons-round" style="font-size:16px">delete_outline</span>
+                        Cancella
+                    </button>
+                </div>
+
+                <div class="canvas-wrapper" id="canvasWrapper">
+                    <canvas id="firmaCanvas" height="180"></canvas>
+                    <div class="canvas-placeholder" id="canvasPlaceholder">
+                        <span class="material-icons-round">draw</span>
+                        <span>Disegna qui la tua firma</span>
+                    </div>
+                </div>
+
+                <div class="firma-stato vuota mt-3" id="firmaStato">
+                    <span class="material-icons-round" style="font-size:18px">edit_off</span>
+                    <span id="firmaStatoTesto">Nessuna firma disegnata</span>
+                </div>
+            </div>
+
+            <hr class="firma-divider" />
+
+            <!-- Bottoni -->
+            <div style="display:flex;flex-direction:column;gap:12px">
+                <button type="button" id="btnSalvaFirma"
+                        class="btn-kiosk-primary" disabled>
+                    <span class="material-icons-round" style="font-size:22px">draw</span>
+                    Conferma e firma
+                </button>
+                <button type="button" id="btnAnnulla"
+                        class="btn-kiosk-outline">
+                    <span class="material-icons-round" style="font-size:20px">close</span>
+                    Annulla
+                </button>
+            </div>
+
+            <!-- Info privacy -->
+            <div style="font-size:.72rem;color:#bbb;line-height:1.6">
+                <span class="material-icons-round" style="font-size:13px;vertical-align:middle">lock</span>
+                La firma viene incorporata nel documento PDF e conservata nel fascicolo cliente.
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Form nascosto -->
+<form id="firmaForm" method="post"
+      action="@Url.Action("SalvaFirma", "Kiosk", new { id = Model.Id })">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="signatureData" id="signatureDataInput" />
+</form>
+
+<!-- Form annulla nascosto -->
+<form id="annullaForm" method="post" action="@Url.Action("Annulla", "Kiosk")">
+    @Html.AntiForgeryToken()
+</form>
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.2.0/dist/signature_pad.umd.min.js"></script>
+<script>
+(function () {
+    'use strict';
+
+    const canvas      = document.getElementById('firmaCanvas');
+    const wrapper     = document.getElementById('canvasWrapper');
+    const placeholder = document.getElementById('canvasPlaceholder');
+    const stato       = document.getElementById('firmaStato');
+    const statoTesto  = document.getElementById('firmaStatoTesto');
+    const btnCancella = document.getElementById('btnCancella');
+    const btnSalva    = document.getElementById('btnSalvaFirma');
+    const btnAnnulla  = document.getElementById('btnAnnulla');
+    const spinner     = document.getElementById('spinnerOverlay');
+    const doneOverlay = document.getElementById('doneOverlay');
+    const dataInput   = document.getElementById('signatureDataInput');
+
+    // Inizializza SignaturePad
+    function ridimensionaCanvas() {
+        const ratio = Math.max(window.devicePixelRatio || 1, 1);
+        canvas.width  = wrapper.offsetWidth * ratio;
+        canvas.height = canvas.height       * ratio;
+        canvas.getContext('2d').scale(ratio, ratio);
+        pad.clear();
+    }
+
+    const pad = new SignaturePad(canvas, {
+        penColor: '#1a1a2e',
+        minWidth: 0.8,      // ← ridotto
+        maxWidth: 2.5,      // ← ridotto
+        throttle: 8
+    });
+
+    ridimensionaCanvas();
+    window.addEventListener('resize', ridimensionaCanvas);
+
+    pad.addEventListener('beginStroke', () => {
+        placeholder.style.opacity = '0';
+    });
+
+    pad.addEventListener('afterUpdateStroke', () => {
+        if (!pad.isEmpty()) {
+            stato.className = 'firma-stato firmata';
+            statoTesto.textContent = 'Firma disegnata \u2713';
+            btnSalva.disabled = false;
+        }
+    });
+
+    btnCancella.addEventListener('click', () => {
+        pad.clear();
+        placeholder.style.opacity = '1';
+        stato.className = 'firma-stato vuota';
+        statoTesto.textContent = 'Nessuna firma disegnata';
+        btnSalva.disabled = true;
+    });
+
+    // Salva firma via AJAX
+    btnSalva.addEventListener('click', async () => {
+        if (pad.isEmpty()) return;
+
+        spinner.classList.add('active');
+        btnSalva.disabled = true;
+
+        const pngData = pad.toDataURL('image/png');
+        dataInput.value = pngData;
+
+        const form = document.getElementById('firmaForm');
+        const formData = new FormData(form);
+
+        try {
+            const resp = await fetch(form.action, { method: 'POST', body: formData });
+            const json = await resp.json();
+
+            spinner.classList.remove('active');
+
+            if (json.success) {
+                // Mostra overlay di conferma, poi torna alla welcome page
+                doneOverlay.classList.add('active');
+                setTimeout(() => {
+                    window.location.href = '/Kiosk';
+                }, 3500);
+            } else {
+                alert('Errore durante il salvataggio. Riprova.');
+                btnSalva.disabled = false;
+            }
+        } catch (e) {
+            spinner.classList.remove('active');
+            alert('Errore di rete. Riprova.');
+            btnSalva.disabled = false;
+        }
+    });
+
+    // Annulla: invia form di annullamento, torna alla welcome page
+    btnAnnulla.addEventListener('click', async () => {
+        try {
+            const form = document.getElementById('annullaForm');
+            const formData = new FormData(form);
+            await fetch(form.action, { method: 'POST', body: formData });
+        } catch (_) { }
+        window.location.href = '/Kiosk';
+    });
+
+})();
+</script>
+}
