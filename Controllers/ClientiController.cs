@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using PilatesStudio.Data;
 using PilatesStudio.Models;
 using PilatesStudio.Models.ViewModels;
+using PilatesStudio.Services;
 
 namespace PilatesStudio.Controllers;
 
@@ -12,14 +13,18 @@ public class ClientiController : Controller
 {
     private readonly ApplicationDbContext _context;
     private readonly IWebHostEnvironment _env;
+    private readonly DocumentoPdfService _pdfService;
+    private readonly KioskStateService _kioskState;
     private const int PageSize = 10;
     private static readonly string[] TipiImmagineConsentiti = ["image/jpeg", "image/png", "image/gif", "image/webp"];
     private const long DimensioneMaxBytes = 5 * 1024 * 1024; // 5 MB
 
-    public ClientiController(ApplicationDbContext context, IWebHostEnvironment env)
+    public ClientiController(ApplicationDbContext context, IWebHostEnvironment env, DocumentoPdfService pdfService, KioskStateService kioskState)
     {
         _context = context;
         _env = env;
+        _pdfService = pdfService;
+        _kioskState = kioskState;
     }
 
     private async Task<string?> SalvaFotoAsync(IFormFile foto, string? vecchioPath = null)
@@ -100,6 +105,7 @@ public class ClientiController : Controller
             .FirstOrDefaultAsync(c => c.Id == id);
 
         if (cliente == null) return NotFound();
+        ViewData["KioskClienteId"] = _kioskState.PendingClienteId;
         return View(cliente);
     }
 
@@ -131,6 +137,19 @@ public class ClientiController : Controller
         cliente.UltimoAggiornamento = DateTime.UtcNow;
         _context.Clienti.Add(cliente);
         await _context.SaveChangesAsync();
+
+        // Genera il PDF di iscrizione precompilato
+        try
+        {
+            cliente.DocumentoContrattoPath = _pdfService.GeneraContratto(cliente);
+            await _context.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            // La creazione del cliente va a buon fine anche senza PDF
+            var logger = HttpContext.RequestServices.GetRequiredService<ILogger<ClientiController>>();
+            logger.LogWarning(ex, "Impossibile generare il PDF di iscrizione per il cliente {Id}.", cliente.Id);
+        }
 
         TempData["Success"] = $"Cliente {cliente.NomeCompleto} creato con successo!";
         return RedirectToAction(nameof(Index));
@@ -209,6 +228,7 @@ public class ClientiController : Controller
         if (cliente == null) return NotFound();
 
         EliminaFileFoto(cliente.FotoProfiloPath);
+        _pdfService.EliminaContratto(cliente.DocumentoContrattoPath);
         _context.Clienti.Remove(cliente);
         await _context.SaveChangesAsync();
 
@@ -230,5 +250,155 @@ public class ClientiController : Controller
 
         TempData["Success"] = $"Stato cliente aggiornato.";
         return RedirectToAction(nameof(Index));
+    }
+
+    // GET: Clienti/DownloadContratto/5
+    public async Task<IActionResult> DownloadContratto(int id)
+    {
+        var cliente = await _context.Clienti.FindAsync(id);
+        if (cliente == null) return NotFound();
+
+        // Se il PDF non esiste ancora, lo generiamo al volo
+        if (string.IsNullOrEmpty(cliente.DocumentoContrattoPath))
+        {
+            try
+            {
+                cliente.DocumentoContrattoPath = _pdfService.GeneraContratto(cliente);
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                var logger = HttpContext.RequestServices.GetRequiredService<ILogger<ClientiController>>();
+                logger.LogError(ex, "Impossibile generare il PDF per il cliente {Id}.", id);
+                TempData["Error"] = "Impossibile generare il documento PDF.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+        }
+
+        var percorsoAssoluto = Path.Combine(
+            _env.WebRootPath,
+            cliente.DocumentoContrattoPath!.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+
+        if (!System.IO.File.Exists(percorsoAssoluto))
+        {
+            // File mancante: rigenera
+            try
+            {
+                cliente.DocumentoContrattoPath = _pdfService.GeneraContratto(cliente);
+                await _context.SaveChangesAsync();
+                percorsoAssoluto = Path.Combine(
+                    _env.WebRootPath,
+                    cliente.DocumentoContrattoPath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+            }
+            catch
+            {
+                TempData["Error"] = "Impossibile generare il documento PDF.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+        }
+
+        var nomeDownload = $"Iscrizione_{cliente.Cognome}_{cliente.Nome}_{cliente.DataIscrizione:yyyyMMdd}.pdf";
+        var fileBytes = await System.IO.File.ReadAllBytesAsync(percorsoAssoluto);
+        return File(fileBytes, "application/pdf", nomeDownload);
+    }
+
+    // POST: Clienti/RigeneraContratto/5
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RigeneraContratto(int id)
+    {
+        var cliente = await _context.Clienti.FindAsync(id);
+        if (cliente == null) return NotFound();
+
+        _pdfService.EliminaContratto(cliente.DocumentoContrattoPath);
+        cliente.DocumentoContrattoPath = _pdfService.GeneraContratto(cliente, cliente.FirmaPath);
+        await _context.SaveChangesAsync();
+
+        TempData["Success"] = "Documento PDF rigenerato con successo.";
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    // POST: Clienti/InviaAlKiosk/5  — invia il documento al kiosk iPad per la firma
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> InviaAlKiosk(int id)
+    {
+        var cliente = await _context.Clienti.FindAsync(id);
+        if (cliente == null) return NotFound();
+
+        // Assicura che il PDF esista prima di inviare al kiosk
+        if (string.IsNullOrEmpty(cliente.DocumentoContrattoPath))
+        {
+            cliente.DocumentoContrattoPath = _pdfService.GeneraContratto(cliente);
+            await _context.SaveChangesAsync();
+        }
+
+        _kioskState.SetCliente(id);
+        TempData["Success"] = $"Documento inviato al kiosk — {cliente.NomeCompleto} può ora firmare sull'iPad.";
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    // POST: Clienti/AnnullaKiosk  — rimuove la sessione kiosk corrente
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult AnnullaKiosk(int id)
+    {
+        _kioskState.Clear();
+        TempData["Success"] = "Sessione kiosk annullata.";
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    // GET: Clienti/FirmaContratto/5
+    public async Task<IActionResult> FirmaContratto(int id)
+    {
+        var cliente = await _context.Clienti.FindAsync(id);
+        if (cliente == null) return NotFound();
+
+        // Assicura che il PDF esista prima di mostrare la pagina di firma
+        if (string.IsNullOrEmpty(cliente.DocumentoContrattoPath))
+        {
+            cliente.DocumentoContrattoPath = _pdfService.GeneraContratto(cliente);
+            await _context.SaveChangesAsync();
+        }
+
+        return View(cliente);
+    }
+
+    // POST: Clienti/SalvaFirma/5
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SalvaFirma(int id, [FromForm] string signatureData)
+    {
+        if (string.IsNullOrWhiteSpace(signatureData))
+            return BadRequest("Firma mancante.");
+
+        var cliente = await _context.Clienti.FindAsync(id);
+        if (cliente == null) return NotFound();
+
+        // Salva PNG firma su disco
+        var firmaCartella = Path.Combine(_env.WebRootPath, "uploads", "clienti", "firme");
+        Directory.CreateDirectory(firmaCartella);
+
+        var base64 = signatureData.Contains(',')
+            ? signatureData[(signatureData.IndexOf(',') + 1)..]
+            : signatureData;
+        var bytes = Convert.FromBase64String(base64);
+
+        var nomeFile = $"firma_{cliente.Id}_{Guid.NewGuid():N}.png";
+        var percorsoAssoluto = Path.Combine(firmaCartella, nomeFile);
+        await System.IO.File.WriteAllBytesAsync(percorsoAssoluto, bytes);
+
+        // Elimina vecchia firma se presente
+        _pdfService.EliminaFirma(cliente.FirmaPath);
+        cliente.FirmaPath = $"/uploads/clienti/firme/{nomeFile}";
+
+        // Rigenera PDF incorporando la firma
+        _pdfService.EliminaContratto(cliente.DocumentoContrattoPath);
+        cliente.DocumentoContrattoPath = _pdfService.GeneraContratto(cliente, cliente.FirmaPath);
+        cliente.UltimoAggiornamento = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        return Json(new { success = true, redirectUrl = Url.Action(nameof(Details), new { id }) });
     }
 }
