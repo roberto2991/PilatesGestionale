@@ -1,0 +1,28 @@
+@{
+    ViewData["Title"] = "Link non valido";
+    Layout = "_Layout";
+}
+
+<div class="d-flex align-items-center justify-content-center min-vh-100" style="background:#f4f6f9">
+    <div class="card shadow-sm text-center" style="width:100%;max-width:440px">
+        <div class="card-body p-5">
+            <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3"
+                 style="width:64px;height:64px;background:#fdecea">
+                <span class="material-icons-round" style="color:#dc3545;font-size:32px">link_off</span>
+            </div>
+            <h3 class="fw-bold mb-2">Link non valido</h3>
+            <p class="text-muted mb-4">
+                Il link di attivazione non è valido oppure è già stato utilizzato.
+                Ogni link può essere usato una sola volta.
+            </p>
+            <div class="alert alert-light border small text-start">
+                <strong>Cosa puoi fare:</strong>
+                <ul class="mb-0 mt-1 ps-3">
+                    <li>Controlla di aver copiato l'URL completo dall'email</li>
+                    <li>Chiedi all'amministratore di reinviare l'invito</li>
+                    <li>Se hai già attivato l'account, <a asp-controller="Account" asp-action="Login">accedi normalmente</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>

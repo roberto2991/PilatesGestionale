@@ -46,6 +46,16 @@
                         <span>Clienti</span>
                     </a>
                 </li>
+                @if (User.IsInRole("Admin"))
+                {
+                    <li>
+                        <a asp-controller="Insegnanti" asp-action="Index"
+                           class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Insegnanti" ? "active" : "")">
+                            <span class="material-icons-round">school</span>
+                            <span>Insegnanti</span>
+                        </a>
+                    </li>
+                }
                 <li>
                     <a href="#" class="nav-link disabled">
                         <span class="material-icons-round">event</span>
@@ -58,6 +68,17 @@
                         <span>Abbonamenti <span class="badge-soon">Soon</span></span>
                     </a>
                 </li>
+                @if (User.IsInRole("Insegnante"))
+                {
+                    <li class="nav-label">IL MIO PORTALE</li>
+                    <li>
+                        <a asp-controller="PortaleInsegnante" asp-action="Index"
+                           class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "PortaleInsegnante" ? "active" : "")">
+                            <span class="material-icons-round">home</span>
+                            <span>Il mio portale</span>
+                        </a>
+                    </li>
+                }
                 <li class="nav-label">SISTEMA</li>
                 <li>
                     <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline w-100">

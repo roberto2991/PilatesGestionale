@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using PilatesStudio.Data;
+using PilatesStudio.Filters;
 using PilatesStudio.Models;
 using PilatesStudio.Services;
+using PilatesStudio.Services.Email;
 using QuestPDF.Infrastructure;
 
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
@@ -10,11 +12,13 @@ AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 // QuestPDF community license (gratuita per uso non commerciale / piccole realtà)
 QuestPDF.Settings.License = LicenseType.Community;
 
-
 var builder = WebApplication.CreateBuilder(args);
 
-// Add MVC
-builder.Services.AddControllersWithViews();
+// Add MVC con filtro globale cambio password
+builder.Services.AddControllersWithViews(options =>
+{
+    options.Filters.Add<RequirePasswordChangeFilter>();
+});
 
 // PostgreSQL + EF Core
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -25,9 +29,10 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
     options.Password.RequireDigit = true;
     options.Password.RequireLowercase = true;
-    options.Password.RequireUppercase = false;
-    options.Password.RequireNonAlphanumeric = false;
-    options.Password.RequiredLength = 6;
+    options.Password.RequireUppercase = true;
+    options.Password.RequireNonAlphanumeric = true;
+    options.Password.RequiredLength = 8;
+    options.Password.RequiredUniqueChars = 4;
     options.SignIn.RequireConfirmedAccount = false;
 })
 .AddEntityFrameworkStores<ApplicationDbContext>()
@@ -45,8 +50,19 @@ builder.Services.ConfigureApplicationCookie(options =>
 // Session
 builder.Services.AddSession();
 
+// HttpContextAccessor (necessario per EmailTemplateService)
+builder.Services.AddHttpContextAccessor();
+
+// Email
+builder.Services.Configure<EmailOptions>(
+    builder.Configuration.GetSection(EmailOptions.SectionName));
+builder.Services.AddScoped<IEmailService, SmtpEmailService>();
+builder.Services.AddScoped<EmailTemplateService>();
+builder.Services.AddHostedService<EmailRetryService>();
+
 // Servizi applicativi
 builder.Services.AddScoped<DocumentoPdfService>();
+builder.Services.AddScoped<TokenAttivazioneService>();
 builder.Services.AddSingleton<PilatesStudio.Services.KioskStateService>();
 
 var app = builder.Build();
