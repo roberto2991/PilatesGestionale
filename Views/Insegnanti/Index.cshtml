@@ -1,0 +1,151 @@
+@model PilatesStudio.Models.ViewModels.InsegnanteListViewModel
+@{
+    ViewData["Title"] = "Insegnanti";
+}
+
+<div class="page-header d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="page-title">
+            <span class="material-icons-round me-2">school</span>Insegnanti
+        </h1>
+        <p class="text-muted mb-0">Gestione personale docente</p>
+    </div>
+    <a asp-action="Create" class="btn btn-primary-brand">
+        <span class="material-icons-round me-1">person_add</span>Nuova Insegnante
+    </a>
+</div>
+
+<!-- Ricerca -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="d-flex gap-3 align-items-end flex-wrap">
+            <div class="flex-grow-1">
+                <label class="form-label small">Cerca per nome, cognome, email o CF</label>
+                <input name="ricerca" value="@Model.Ricerca" class="form-control"
+                       placeholder="Es. Rossi, mario@studio.it..." />
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary-brand">
+                    <span class="material-icons-round me-1" style="font-size:18px">search</span>Cerca
+                </button>
+                @if (!string.IsNullOrEmpty(Model.Ricerca))
+                {
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <span class="material-icons-round" style="font-size:18px">clear</span>
+                    </a>
+                }
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tabella -->
+<div class="card">
+    <div class="card-body p-0">
+        @if (Model.Insegnanti.Count == 0)
+        {
+            <div class="text-center py-5 text-muted">
+                <span class="material-icons-round d-block mb-2" style="font-size:48px">school</span>
+                <p>Nessuna insegnante trovata.</p>
+                <a asp-action="Create" class="btn btn-primary-brand btn-sm">Aggiungi la prima</a>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nome</th>
+                            <th>Email</th>
+                            <th>Codice Fiscale</th>
+                            <th>Stato Contratto</th>
+                            <th>Account</th>
+                            <th class="text-end">Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var ins in Model.Insegnanti)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="avatar-sm bg-primary-light rounded-circle d-flex align-items-center justify-content-center">
+                                            <span class="material-icons-round text-primary" style="font-size:18px">person</span>
+                                        </div>
+                                        <div>
+                                            <div class="fw-medium">@ins.NomeCompleto</div>
+                                            @if (!string.IsNullOrEmpty(ins.TitoloDiStudio))
+                                            {
+                                                <small class="text-muted">@ins.TitoloDiStudio</small>
+                                            }
+                                        </div>
+                                    </div>
+                                </td>
+                                <td><small>@ins.Email</small></td>
+                                <td><code class="small">@ins.CodiceFiscale</code></td>
+                                <td>
+                                    @{
+                                        var (badgeClass, icon) = ins.StatoContratto switch
+                                        {
+                                            PilatesStudio.Models.StatoContrattuale.Attivo => ("success", "check_circle"),
+                                            PilatesStudio.Models.StatoContrattuale.Sospeso => ("warning", "pause_circle"),
+                                            PilatesStudio.Models.StatoContrattuale.Cessato => ("danger", "cancel"),
+                                            _ => ("secondary", "draft")
+                                        };
+                                    }
+                                    <span class="badge bg-@badgeClass-subtle text-@badgeClass border border-@badgeClass-subtle d-inline-flex align-items-center gap-1">
+                                        <span class="material-icons-round" style="font-size:14px">@icon</span>
+                                        @ins.StatoContratto
+                                    </span>
+                                </td>
+                                <td>
+                                    @if (ins.AccountAttivato)
+                                    {
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle d-inline-flex align-items-center gap-1">
+                                            <span class="material-icons-round" style="font-size:14px">verified</span>Attivato
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle d-inline-flex align-items-center gap-1">
+                                            <span class="material-icons-round" style="font-size:14px">pending</span>In attesa
+                                        </span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <a asp-action="Details" asp-route-id="@ins.Id"
+                                       class="btn btn-sm btn-outline-primary me-1">
+                                        <span class="material-icons-round" style="font-size:16px">visibility</span>
+                                    </a>
+                                    <a asp-action="Edit" asp-route-id="@ins.Id"
+                                       class="btn btn-sm btn-outline-secondary">
+                                        <span class="material-icons-round" style="font-size:16px">edit</span>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Paginazione -->
+@if (Model.TotalePagine > 1)
+{
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+            @for (int i = 1; i <= Model.TotalePagine; i++)
+            {
+                <li class="page-item @(i == Model.PaginaCorrente ? "active" : "")">
+                    <a class="page-link" asp-action="Index"
+                       asp-route-ricerca="@Model.Ricerca"
+                       asp-route-pagina="@i">@i</a>
+                </li>
+            }
+        </ul>
+    </nav>
+    <p class="text-center text-muted small">@Model.TotaleInsegnanti insegnanti totali</p>
+}

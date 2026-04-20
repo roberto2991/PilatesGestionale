@@ -8,12 +8,10 @@ public static class DbSeeder
     public static async Task SeedAsync(UserManager<ApplicationUser> userManager,
                                        RoleManager<IdentityRole> roleManager)
     {
-        // Crea ruolo Admin se non esiste
-        if (!await roleManager.RoleExistsAsync("Admin"))
-            await roleManager.CreateAsync(new IdentityRole("Admin"));
-
-        if (!await roleManager.RoleExistsAsync("Staff"))
-            await roleManager.CreateAsync(new IdentityRole("Staff"));
+        // Crea ruoli se non esistono
+        foreach (var ruolo in new[] { "Admin", "Staff", "Insegnante" })
+            if (!await roleManager.RoleExistsAsync(ruolo))
+                await roleManager.CreateAsync(new IdentityRole(ruolo));
 
         // Crea utente Admin di default
         const string adminEmail = "admin@pilatesstudio.it";

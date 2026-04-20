@@ -1,0 +1,57 @@
+@model PilatesStudio.Models.Insegnante
+@{
+    ViewData["Title"] = "Elimina Insegnante";
+}
+
+<div class="page-header mb-4">
+    <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary btn-sm mb-3">
+        <span class="material-icons-round me-1" style="font-size:16px">arrow_back</span>Annulla
+    </a>
+    <h1 class="page-title text-danger">
+        <span class="material-icons-round me-2">delete</span>Elimina Insegnante
+    </h1>
+</div>
+
+<div class="row">
+    <div class="col-lg-6">
+        <div class="card border-danger">
+            <div class="card-body">
+                <div class="alert alert-danger d-flex align-items-start gap-2">
+                    <span class="material-icons-round mt-1">warning</span>
+                    <div>
+                        <strong>Attenzione — Azione irreversibile</strong>
+                        <p class="mb-0 mt-1">
+                            Verranno eliminati l'anagrafica insegnante e l'utenza di accesso.
+                            Eventuali token di attivazione verranno eliminati automaticamente.
+                        </p>
+                    </div>
+                </div>
+
+                <dl class="row">
+                    <dt class="col-sm-4 text-muted">Nome completo</dt>
+                    <dd class="col-sm-8"><strong>@Model.NomeCompleto</strong></dd>
+
+                    <dt class="col-sm-4 text-muted">Codice Fiscale</dt>
+                    <dd class="col-sm-8"><code>@Model.CodiceFiscale</code></dd>
+
+                    <dt class="col-sm-4 text-muted">Email</dt>
+                    <dd class="col-sm-8">@Model.Email</dd>
+
+                    <dt class="col-sm-4 text-muted">Stato contratto</dt>
+                    <dd class="col-sm-8">@Model.StatoContratto</dd>
+
+                    <dt class="col-sm-4 text-muted">Account attivato</dt>
+                    <dd class="col-sm-8">@(Model.AccountAttivato ? "Sì" : "No")</dd>
+                </dl>
+
+                <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-flex gap-2 mt-3">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-danger">
+                        <span class="material-icons-round me-1">delete_forever</span>Conferma eliminazione
+                    </button>
+                    <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary">Annulla</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

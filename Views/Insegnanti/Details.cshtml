@@ -1,0 +1,216 @@
+@model PilatesStudio.Models.Insegnante
+@using PilatesStudio.Models
+@{
+    ViewData["Title"] = Model.NomeCompleto;
+    var ultimaEmail = ViewBag.UltimaEmail as EmailNotificaLog;
+    var tokenAttivo = (bool)(ViewBag.TokenAttivo ?? false);
+}
+
+<div class="page-header mb-4">
+    <a asp-action="Index" class="btn btn-outline-secondary btn-sm mb-3">
+        <span class="material-icons-round me-1" style="font-size:16px">arrow_back</span>Torna alla lista
+    </a>
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <h1 class="page-title">
+            <span class="material-icons-round me-2">school</span>@Model.NomeCompleto
+        </h1>
+        <div class="d-flex gap-2">
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-secondary">
+                <span class="material-icons-round me-1">edit</span>Modifica
+            </a>
+            <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-outline-danger">
+                <span class="material-icons-round me-1">delete</span>Elimina
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+
+    <!-- Colonna sinistra: dati -->
+    <div class="col-lg-8">
+
+        <!-- Dati anagrafici -->
+        <div class="card mb-4">
+            <div class="card-header d-flex align-items-center gap-2">
+                <span class="material-icons-round">badge</span>
+                <h5 class="mb-0">Dati Anagrafici</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label text-muted small">Nome</label>
+                        <div class="fw-medium">@Model.Nome</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted small">Cognome</label>
+                        <div class="fw-medium">@Model.Cognome</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted small">Codice Fiscale</label>
+                        <div><code>@Model.CodiceFiscale</code></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted small">Email</label>
+                        <div><a href="mailto:@Model.Email">@Model.Email</a></div>
+                    </div>
+                    @if (!string.IsNullOrEmpty(Model.Indirizzo))
+                    {
+                        <div class="col-12">
+                            <label class="form-label text-muted small">Indirizzo</label>
+                            <div>@Model.Indirizzo</div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Dati professionali -->
+        <div class="card mb-4">
+            <div class="card-header d-flex align-items-center gap-2">
+                <span class="material-icons-round">work</span>
+                <h5 class="mb-0">Dati Professionali</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label text-muted small">Titolo di Studio</label>
+                        <div>@(Model.TitoloDiStudio ?? "—")</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted small">Stato Contrattuale</label>
+                        <div>
+                            @{
+                                var (cls, icon) = Model.StatoContratto switch
+                                {
+                                    StatoContrattuale.Attivo => ("success", "check_circle"),
+                                    StatoContrattuale.Sospeso => ("warning", "pause_circle"),
+                                    StatoContrattuale.Cessato => ("danger", "cancel"),
+                                    _ => ("secondary", "draft")
+                                };
+                            }
+                            <span class="badge bg-@cls-subtle text-@cls border border-@cls-subtle d-inline-flex align-items-center gap-1">
+                                <span class="material-icons-round" style="font-size:14px">@icon</span>
+                                @Model.StatoContratto
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted small">Registrata il</label>
+                        <div>@Model.DataCreazione.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div>
+                    </div>
+                    @if (Model.DataAttivazione.HasValue)
+                    {
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small">Account attivato il</label>
+                            <div>@Model.DataAttivazione.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Colonna destra: stato account & email -->
+    <div class="col-lg-4">
+
+        <!-- Stato account -->
+        <div class="card mb-4">
+            <div class="card-header d-flex align-items-center gap-2">
+                <span class="material-icons-round">manage_accounts</span>
+                <h5 class="mb-0">Stato Account</h5>
+            </div>
+            <div class="card-body">
+                @if (Model.AccountAttivato)
+                {
+                    <div class="d-flex align-items-center gap-2 text-success mb-3">
+                        <span class="material-icons-round">verified</span>
+                        <strong>Account attivo</strong>
+                    </div>
+                    <p class="text-muted small mb-0">
+                        L'insegnante ha completato l'attivazione e può accedere al portale.
+                    </p>
+                }
+                else
+                {
+                    <div class="d-flex align-items-center gap-2 text-warning mb-3">
+                        <span class="material-icons-round">pending</span>
+                        <strong>In attesa di attivazione</strong>
+                    </div>
+                    <p class="text-muted small mb-3">
+                        L'insegnante non ha ancora completato l'attivazione tramite il link email.
+                    </p>
+
+                    @if (!Model.AccountAttivato)
+                    {
+                        <form asp-action="ReinviaInvito" asp-route-id="@Model.Id" method="post">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-sm btn-outline-primary w-100"
+                                    onclick="return confirm('Inviare un nuovo link di attivazione a @Model.Email?')">
+                                <span class="material-icons-round me-1" style="font-size:16px">send</span>
+                                Reinvia invito
+                            </button>
+                        </form>
+                    }
+                }
+            </div>
+        </div>
+
+        <!-- Stato ultima email -->
+        <div class="card">
+            <div class="card-header d-flex align-items-center gap-2">
+                <span class="material-icons-round">email</span>
+                <h5 class="mb-0">Email di Attivazione</h5>
+            </div>
+            <div class="card-body">
+                @if (ultimaEmail is null)
+                {
+                    <p class="text-muted small mb-0">Nessuna email registrata.</p>
+                }
+                else
+                {
+                    <dl class="mb-0">
+                        <dt class="small text-muted">Stato</dt>
+                        <dd>
+                            @{
+                                var (eCls, eIcon, eTxt) = ultimaEmail.Stato switch
+                                {
+                                    StatoInvio.Inviato => ("success", "check_circle", "Inviata"),
+                                    StatoInvio.Fallito => ("danger", "error", "Fallita"),
+                                    StatoInvio.RetryEsaurito => ("danger", "block", "Retry esaurito"),
+                                    _ => ("secondary", "hourglass_empty", "In coda")
+                                };
+                            }
+                            <span class="badge bg-@eCls-subtle text-@eCls border border-@eCls-subtle d-inline-flex align-items-center gap-1">
+                                <span class="material-icons-round" style="font-size:13px">@eIcon</span>@eTxt
+                            </span>
+                        </dd>
+                        <dt class="small text-muted">Data invio</dt>
+                        <dd class="small">
+                            @(ultimaEmail.InviatoAtUtc.HasValue
+                                ? ultimaEmail.InviatoAtUtc.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                                : ultimaEmail.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm"))
+                        </dd>
+                        <dt class="small text-muted">Tentativi</dt>
+                        <dd class="small">@ultimaEmail.TentativiEffettuati</dd>
+                        @if (!string.IsNullOrEmpty(ultimaEmail.ErroreDettaglio))
+                        {
+                            <dt class="small text-muted">Errore</dt>
+                            <dd><small class="text-danger">@ultimaEmail.ErroreDettaglio</small></dd>
+                        }
+                        @if (tokenAttivo)
+                        {
+                            <dd>
+                                <span class="badge bg-info-subtle text-info border border-info-subtle d-inline-flex align-items-center gap-1 mt-1">
+                                    <span class="material-icons-round" style="font-size:13px">timer</span>Link attivo
+                                </span>
+                            </dd>
+                        }
+                    </dl>
+                }
+            </div>
+        </div>
+
+    </div>
+</div>

@@ -1,0 +1,27 @@
+@{
+    ViewData["Title"] = "Link scaduto";
+    Layout = "_Layout";
+}
+
+<div class="d-flex align-items-center justify-content-center min-vh-100" style="background:#f4f6f9">
+    <div class="card shadow-sm text-center" style="width:100%;max-width:440px">
+        <div class="card-body p-5">
+            <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3"
+                 style="width:64px;height:64px;background:#fff3cd">
+                <span class="material-icons-round" style="color:#ffc107;font-size:32px">timer_off</span>
+            </div>
+            <h3 class="fw-bold mb-2">Link scaduto</h3>
+            <p class="text-muted mb-4">
+                Il link di attivazione è scaduto. I link sono validi per <strong>72 ore</strong>
+                dal momento dell'invio.
+            </p>
+            <div class="alert alert-light border small text-start">
+                <strong>Cosa fare:</strong>
+                <ul class="mb-0 mt-1 ps-3">
+                    <li>Contatta l'amministratore dello studio</li>
+                    <li>Chiedi di reinviare un nuovo invito dalla tua pagina profilo</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
