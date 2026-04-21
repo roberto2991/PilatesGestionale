@@ -1,0 +1,167 @@
+@model PilatesStudio.Models.ViewModels.CorsoListViewModel
+@{
+    ViewData["Title"] = "Corsi";
+}
+
+<div class="page-header d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="page-title">
+            <span class="material-icons-round me-2">event</span>Corsi
+        </h1>
+        <p class="text-muted mb-0">Gestione tipologie di corso e pianificazione settimanale</p>
+    </div>
+    <a asp-action="Create" class="btn btn-primary-brand">
+        <span class="material-icons-round me-1">add</span>Nuovo Corso
+    </a>
+</div>
+
+<!-- Filtri -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="d-flex gap-3 align-items-end flex-wrap">
+            <div class="flex-grow-1">
+                <label class="form-label small">Cerca per nome o descrizione</label>
+                <input name="ricerca" value="@Model.Ricerca" class="form-control"
+                       placeholder="Es. Pilates Mat, Reformer..." />
+            </div>
+            <div>
+                <label class="form-label small">Stato</label>
+                <select name="soloAttivi" class="form-select">
+                    <option value="" selected="@(Model.SoloAttivi == null)">Tutti</option>
+                    <option value="true" selected="@(Model.SoloAttivi == true)">Solo attivi</option>
+                </select>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary-brand">
+                    <span class="material-icons-round me-1" style="font-size:18px">search</span>Cerca
+                </button>
+                @if (!string.IsNullOrEmpty(Model.Ricerca) || Model.SoloAttivi != null)
+                {
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <span class="material-icons-round" style="font-size:18px">clear</span>
+                    </a>
+                }
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tabella -->
+<div class="card">
+    <div class="card-body p-0">
+        @if (Model.Corsi.Count == 0)
+        {
+            <div class="text-center py-5 text-muted">
+                <span class="material-icons-round d-block mb-2" style="font-size:48px">event</span>
+                <p>Nessun corso trovato.</p>
+                <a asp-action="Create" class="btn btn-primary-brand btn-sm">Crea il primo corso</a>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nome Corso</th>
+                            <th>Periodo</th>
+                            <th>Sessioni settimanali</th>
+                            <th class="text-center">Iscritti / Cap.</th>
+                            <th class="text-center">Stato</th>
+                            <th class="text-end">Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var corso in Model.Corsi)
+                        {
+                            var numIscritti = Model.NumeroIscrittiPerCorso.GetValueOrDefault(corso.Id, 0);
+                            var isAtCapacity = numIscritti >= corso.CapacitaMax;
+                            <tr>
+                                <td>
+                                    <div class="fw-medium">@corso.Nome</div>
+                                    @if (!string.IsNullOrEmpty(corso.Descrizione))
+                                    {
+                                        <small class="text-muted">@corso.Descrizione</small>
+                                    }
+                                </td>
+                                <td>
+                                    <small>
+                                        @corso.DataInizio.ToLocalTime().ToString("dd/MM/yyyy") –
+                                        @corso.DataFine.ToLocalTime().ToString("dd/MM/yyyy")
+                                    </small>
+                                </td>
+                                <td>
+                                    @if (corso.Sessioni.Any())
+                                    {
+                                        foreach (var s in corso.Sessioni.OrderBy(x => x.GiornoSettimana))
+                                        {
+                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle me-1 mb-1">
+                                                @s.GiornoNome @s.OrarioFormatted
+                                            </span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">—</span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge @(isAtCapacity ? "bg-danger-subtle text-danger border border-danger-subtle" : "bg-success-subtle text-success border border-success-subtle")">
+                                        @numIscritti / @corso.CapacitaMax
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    @if (corso.Attivo)
+                                    {
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle d-inline-flex align-items-center gap-1">
+                                            <span class="material-icons-round" style="font-size:14px">check_circle</span>Attivo
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle d-inline-flex align-items-center gap-1">
+                                            <span class="material-icons-round" style="font-size:14px">pause_circle</span>Inattivo
+                                        </span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <a asp-action="Details" asp-route-id="@corso.Id"
+                                       class="btn btn-sm btn-outline-primary me-1" title="Dettagli">
+                                        <span class="material-icons-round" style="font-size:16px">visibility</span>
+                                    </a>
+                                    <a asp-action="Edit" asp-route-id="@corso.Id"
+                                       class="btn btn-sm btn-outline-secondary me-1" title="Modifica">
+                                        <span class="material-icons-round" style="font-size:16px">edit</span>
+                                    </a>
+                                    <a asp-action="Delete" asp-route-id="@corso.Id"
+                                       class="btn btn-sm btn-outline-danger" title="Elimina">
+                                        <span class="material-icons-round" style="font-size:16px">delete</span>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Paginazione -->
+@if (Model.TotalePagine > 1)
+{
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+            @for (int i = 1; i <= Model.TotalePagine; i++)
+            {
+                <li class="page-item @(i == Model.PaginaCorrente ? "active" : "")">
+                    <a class="page-link" asp-action="Index"
+                       asp-route-ricerca="@Model.Ricerca"
+                       asp-route-soloAttivi="@Model.SoloAttivi"
+                       asp-route-pagina="@i">@i</a>
+                </li>
+            }
+        </ul>
+    </nav>
+    <p class="text-center text-muted small">@Model.TotaleCorsi corsi totali</p>
+}

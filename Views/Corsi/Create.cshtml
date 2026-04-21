@@ -1,0 +1,236 @@
+@model PilatesStudio.Models.ViewModels.CorsoCreateViewModel
+@{
+    ViewData["Title"] = "Nuovo Corso";
+}
+
+<div class="page-header mb-4">
+    <a asp-action="Index" class="btn btn-outline-secondary btn-sm mb-3">
+        <span class="material-icons-round me-1" style="font-size:16px">arrow_back</span>Torna alla lista
+    </a>
+    <h1 class="page-title">
+        <span class="material-icons-round me-2">add_circle</span>Nuovo Corso
+    </h1>
+</div>
+
+<form asp-action="Create" method="post" id="corsoForm">
+    @Html.AntiForgeryToken()
+
+    <div class="row g-4">
+
+        <!-- Colonna sinistra: dati principali -->
+        <div class="col-lg-8">
+
+            <!-- Informazioni base -->
+            <div class="card mb-4">
+                <div class="card-header d-flex align-items-center gap-2">
+                    <span class="material-icons-round">info</span>
+                    <h5 class="mb-0">Informazioni Corso</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label asp-for="Nome" class="form-label"></label>
+                            <input asp-for="Nome" class="form-control" placeholder="Es. Pilates Mat Avanzato" />
+                            <span asp-validation-for="Nome" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="Descrizione" class="form-label"></label>
+                            <textarea asp-for="Descrizione" class="form-control" rows="3"
+                                      placeholder="Descrizione opzionale del corso..."></textarea>
+                            <span asp-validation-for="Descrizione" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="CapacitaMax" class="form-label"></label>
+                            <input asp-for="CapacitaMax" type="number" min="1" max="200" class="form-control" />
+                            <span asp-validation-for="CapacitaMax" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="DataInizio" class="form-label"></label>
+                            <input asp-for="DataInizio" type="date" class="form-control" />
+                            <span asp-validation-for="DataInizio" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="DataFine" class="form-label"></label>
+                            <input asp-for="DataFine" type="date" class="form-control" />
+                            <span asp-validation-for="DataFine" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check form-switch">
+                                <input asp-for="Attivo" class="form-check-input" role="switch" />
+                                <label asp-for="Attivo" class="form-check-label">Corso attivo</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sessioni settimanali -->
+            <div class="card mb-4">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="material-icons-round">schedule</span>
+                        <h5 class="mb-0">Sessioni Settimanali</h5>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="aggiungiSessione()">
+                        <span class="material-icons-round me-1" style="font-size:16px">add</span>Aggiungi sessione
+                    </button>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small mb-3">
+                        Definisci i giorni e gli orari in cui il corso si ripete ogni settimana.
+                        È possibile aggiungere più sessioni per lo stesso corso (es. Martedì mattina e Giovedì sera).
+                    </p>
+                    <div class="table-responsive">
+                        <table class="table table-sm" id="sessioniTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Giorno</th>
+                                    <th>Ora Inizio</th>
+                                    <th>Ora Fine</th>
+                                    <th style="width:60px"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="sessioniBody">
+                                <!-- Rows added dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="noSessioniMsg" class="text-center text-muted py-3 small">
+                        <span class="material-icons-round d-block mb-1" style="font-size:32px">event_busy</span>
+                        Nessuna sessione aggiunta. Clicca "Aggiungi sessione" per iniziare.
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Colonna destra: insegnanti -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header d-flex align-items-center gap-2">
+                    <span class="material-icons-round">school</span>
+                    <h5 class="mb-0">Insegnanti</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small mb-3">Seleziona uno o più insegnanti per questo corso.</p>
+                    @if (Model.InsegnantiDisponibili.Count == 0)
+                    {
+                        <div class="alert alert-warning small">
+                            <span class="material-icons-round me-1" style="font-size:16px">warning</span>
+                            Nessun insegnante con contratto attivo disponibile.
+                        </div>
+                    }
+                    else
+                    {
+                        foreach (var ins in Model.InsegnantiDisponibili)
+                        {
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox"
+                                       name="InsegnantiSelezionati"
+                                       value="@ins.Id"
+                                       id="ins_@ins.Id" />
+                                <label class="form-check-label" for="ins_@ins.Id">
+                                    <span class="fw-medium">@ins.NomeCompleto</span>
+                                    @if (!string.IsNullOrEmpty(ins.TitoloDiStudio))
+                                    {
+                                        <br /><small class="text-muted">@ins.TitoloDiStudio</small>
+                                    }
+                                </label>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Errori globali -->
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger mt-3" style="display:@(ViewContext.ModelState.IsValid ? "none" : "block")"></div>
+
+    <!-- Azioni -->
+    <div class="d-flex gap-2 mt-4">
+        <button type="submit" class="btn btn-primary-brand">
+            <span class="material-icons-round me-1">save</span>Crea Corso
+        </button>
+        <a asp-action="Index" class="btn btn-outline-secondary">Annulla</a>
+    </div>
+
+</form>
+
+@section Scripts {
+<script>
+    let sessionIndex = 0;
+
+    const giorni = [
+        { val: 1, label: 'Lunedì' },
+        { val: 2, label: 'Martedì' },
+        { val: 3, label: 'Mercoledì' },
+        { val: 4, label: 'Giovedì' },
+        { val: 5, label: 'Venerdì' },
+        { val: 6, label: 'Sabato' },
+        { val: 0, label: 'Domenica' }
+    ];
+
+    function giornoOptions(selectedVal) {
+        return giorni.map(g =>
+            `<option value="${g.val}" ${g.val === selectedVal ? 'selected' : ''}>${g.label}</option>`
+        ).join('');
+    }
+
+    function aggiungiSessione(giorno = 1, oraInizio = '09:00', oraFine = '10:00') {
+        const tbody = document.getElementById('sessioniBody');
+        const noMsg = document.getElementById('noSessioniMsg');
+        noMsg.style.display = 'none';
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>
+                <select name="Sessioni[${sessionIndex}].GiornoSettimana" class="form-select form-select-sm">
+                    ${giornoOptions(giorno)}
+                </select>
+            </td>
+            <td>
+                <input type="time" name="Sessioni[${sessionIndex}].OraInizio"
+                       class="form-control form-control-sm" value="${oraInizio}" required />
+            </td>
+            <td>
+                <input type="time" name="Sessioni[${sessionIndex}].OraFine"
+                       class="form-control form-control-sm" value="${oraFine}" required />
+            </td>
+            <td>
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="rimuoviSessione(this)">
+                    <span class="material-icons-round" style="font-size:16px">delete</span>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+        sessionIndex++;
+        updateNoSessioniMsg();
+    }
+
+    function rimuoviSessione(btn) {
+        btn.closest('tr').remove();
+        rinumeraSessioni();
+        updateNoSessioniMsg();
+    }
+
+    function rinumeraSessioni() {
+        const rows = document.querySelectorAll('#sessioniBody tr');
+        rows.forEach((row, idx) => {
+            row.querySelectorAll('select, input').forEach(el => {
+                const name = el.getAttribute('name');
+                if (name) {
+                    el.setAttribute('name', name.replace(/Sessioni\[\d+\]/, `Sessioni[${idx}]`));
+                }
+            });
+        });
+        sessionIndex = rows.length;
+    }
+
+    function updateNoSessioniMsg() {
+        const rows = document.querySelectorAll('#sessioniBody tr');
+        document.getElementById('noSessioniMsg').style.display = rows.length === 0 ? 'block' : 'none';
+    }
+</script>
+}

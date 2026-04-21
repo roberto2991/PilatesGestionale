@@ -1,0 +1,65 @@
+@model PilatesStudio.Models.TipologiaCorso
+@{
+    ViewData["Title"] = $"Elimina – {Model.Nome}";
+    var numIscritti = Model.Iscrizioni?.Count ?? 0;
+}
+
+<div class="page-header mb-4">
+    <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary btn-sm mb-3">
+        <span class="material-icons-round me-1" style="font-size:16px">arrow_back</span>Annulla
+    </a>
+    <h1 class="page-title text-danger">
+        <span class="material-icons-round me-2">delete_forever</span>Elimina Corso
+    </h1>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card border-danger">
+            <div class="card-header bg-danger-subtle d-flex align-items-center gap-2">
+                <span class="material-icons-round text-danger">warning</span>
+                <h5 class="mb-0 text-danger">Conferma eliminazione</h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-3">Stai per eliminare il corso <strong>@Model.Nome</strong>.</p>
+
+                <dl class="row mb-3">
+                    <dt class="col-sm-5 text-muted small">Periodo</dt>
+                    <dd class="col-sm-7 small">
+                        @Model.DataInizio.ToLocalTime().ToString("dd/MM/yyyy") –
+                        @Model.DataFine.ToLocalTime().ToString("dd/MM/yyyy")
+                    </dd>
+                    <dt class="col-sm-5 text-muted small">Capacità</dt>
+                    <dd class="col-sm-7 small">@Model.CapacitaMax posti</dd>
+                    <dt class="col-sm-5 text-muted small">Clienti iscritti</dt>
+                    <dd class="col-sm-7 small">
+                        @if (numIscritti > 0)
+                        {
+                            <span class="text-danger fw-medium">@numIscritti (saranno rimossi)</span>
+                        }
+                        else
+                        {
+                            <span>0</span>
+                        }
+                    </dd>
+                </dl>
+
+                <div class="alert alert-danger d-flex align-items-start gap-2">
+                    <span class="material-icons-round mt-1">error</span>
+                    <div>
+                        <strong>Operazione irreversibile.</strong>
+                        Verranno eliminati anche tutte le sessioni settimanali e le iscrizioni dei clienti associate a questo corso.
+                    </div>
+                </div>
+
+                <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-flex gap-2">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-danger">
+                        <span class="material-icons-round me-1">delete_forever</span>Elimina definitivamente
+                    </button>
+                    <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary">Annulla</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
