@@ -148,6 +148,110 @@ public class InsegnanteListViewModel
     public int TotaleInsegnanti { get; set; }
 }
 
+// ─────────────────────── CORSI ───────────────────────
+
+public class CorsoListViewModel
+{
+    public List<TipologiaCorso> Corsi { get; set; } = new();
+    public string? Ricerca { get; set; }
+    public bool? SoloAttivi { get; set; }
+    public int PaginaCorrente { get; set; } = 1;
+    public int TotalePagine { get; set; }
+    public int TotaleCorsi { get; set; }
+    public Dictionary<int, int> NumeroIscrittiPerCorso { get; set; } = new();
+}
+
+public class SessioneCorsoInputModel
+{
+    public int GiornoSettimana { get; set; } = 1; // 1 = Lunedì
+    public string OraInizio { get; set; } = "09:00";
+    public string OraFine { get; set; } = "10:00";
+}
+
+public class CorsoCreateViewModel
+{
+    [Required(ErrorMessage = "Il nome è obbligatorio")]
+    [MaxLength(150)]
+    [Display(Name = "Nome Corso")]
+    public string Nome { get; set; } = "";
+
+    [MaxLength(500)]
+    [Display(Name = "Descrizione")]
+    public string? Descrizione { get; set; }
+
+    [Required(ErrorMessage = "La capacità massima è obbligatoria")]
+    [Range(1, 200, ErrorMessage = "La capacità deve essere tra 1 e 200")]
+    [Display(Name = "Capacità Massima")]
+    public int CapacitaMax { get; set; } = 10;
+
+    [Required(ErrorMessage = "La data di inizio è obbligatoria")]
+    [DataType(DataType.Date)]
+    [Display(Name = "Data Inizio")]
+    public DateTime DataInizio { get; set; } = DateTime.Today;
+
+    [Required(ErrorMessage = "La data di fine è obbligatoria")]
+    [DataType(DataType.Date)]
+    [Display(Name = "Data Fine")]
+    public DateTime DataFine { get; set; } = DateTime.Today.AddMonths(3);
+
+    [Display(Name = "Attivo")]
+    public bool Attivo { get; set; } = true;
+
+    public List<int> InsegnantiSelezionati { get; set; } = new();
+    public List<SessioneCorsoInputModel> Sessioni { get; set; } = new();
+
+    // Per la view: lista insegnanti disponibili
+    public List<Insegnante> InsegnantiDisponibili { get; set; } = new();
+}
+
+public class CorsoEditViewModel
+{
+    public int Id { get; set; }
+
+    [Required(ErrorMessage = "Il nome è obbligatorio")]
+    [MaxLength(150)]
+    [Display(Name = "Nome Corso")]
+    public string Nome { get; set; } = "";
+
+    [MaxLength(500)]
+    [Display(Name = "Descrizione")]
+    public string? Descrizione { get; set; }
+
+    [Required(ErrorMessage = "La capacità massima è obbligatoria")]
+    [Range(1, 200, ErrorMessage = "La capacità deve essere tra 1 e 200")]
+    [Display(Name = "Capacità Massima")]
+    public int CapacitaMax { get; set; } = 10;
+
+    [Required(ErrorMessage = "La data di inizio è obbligatoria")]
+    [DataType(DataType.Date)]
+    [Display(Name = "Data Inizio")]
+    public DateTime DataInizio { get; set; }
+
+    [Required(ErrorMessage = "La data di fine è obbligatoria")]
+    [DataType(DataType.Date)]
+    [Display(Name = "Data Fine")]
+    public DateTime DataFine { get; set; }
+
+    [Display(Name = "Attivo")]
+    public bool Attivo { get; set; } = true;
+
+    public List<int> InsegnantiSelezionati { get; set; } = new();
+    public List<SessioneCorsoInputModel> Sessioni { get; set; } = new();
+
+    // Per la view: lista insegnanti disponibili
+    public List<Insegnante> InsegnantiDisponibili { get; set; } = new();
+
+    public int NumeroIscrittiAttuali { get; set; }
+}
+
+public class CorsoDetailsViewModel
+{
+    public TipologiaCorso Corso { get; set; } = null!;
+    public List<IscrizioneCorso> Iscrizioni { get; set; } = new();
+    public List<Cliente> ClientiIscrivibili { get; set; } = new();
+    public int ClienteIdDaIscrivere { get; set; }
+}
+
 // ─────────────────────── PRIMO ACCESSO / PASSWORD ───────────────────────
 public class ImpostaPasswordViewModel
 {

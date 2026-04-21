@@ -15,6 +15,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<TokenAttivazioneAccount> TokenAttivazioneAccount { get; set; }
     public DbSet<EmailNotificaLog> EmailNotificaLog { get; set; }
 
+    // Gestione corsi
+    public DbSet<TipologiaCorso> TipologieCorsi { get; set; }
+    public DbSet<SessioneCorso> SessioniCorso { get; set; }
+    public DbSet<TipologiaCorsoInsegnante> TipologieCorsoInsegnanti { get; set; }
+    public DbSet<IscrizioneCorso> IscrizioniCorso { get; set; }
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -65,6 +71,54 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
              .WithMany()
              .HasForeignKey(x => x.ApplicationUserId)
              .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // TipologiaCorso
+        builder.Entity<TipologiaCorso>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Nome).IsRequired().HasMaxLength(150);
+            e.Property(x => x.Descrizione).HasMaxLength(500);
+        });
+
+        // SessioneCorso
+        builder.Entity<SessioneCorso>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.GiornoSettimana).HasConversion<int>();
+            e.HasOne(x => x.TipologiaCorso)
+             .WithMany(c => c.Sessioni)
+             .HasForeignKey(x => x.TipologiaCorsoId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // TipologiaCorsoInsegnante (M:N junction)
+        builder.Entity<TipologiaCorsoInsegnante>(e =>
+        {
+            e.HasKey(x => new { x.TipologiaCorsoId, x.InsegnanteId });
+            e.HasOne(x => x.TipologiaCorso)
+             .WithMany(c => c.TipologieCorsoInsegnanti)
+             .HasForeignKey(x => x.TipologiaCorsoId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Insegnante)
+             .WithMany()
+             .HasForeignKey(x => x.InsegnanteId)
+             .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // IscrizioneCorso
+        builder.Entity<IscrizioneCorso>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => new { x.TipologiaCorsoId, x.ClienteId }).IsUnique();
+            e.HasOne(x => x.TipologiaCorso)
+             .WithMany(c => c.Iscrizioni)
+             .HasForeignKey(x => x.TipologiaCorsoId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Cliente)
+             .WithMany()
+             .HasForeignKey(x => x.ClienteId)
+             .OnDelete(DeleteBehavior.Restrict);
         });
 
         // Rename Identity tables (optional clean naming)

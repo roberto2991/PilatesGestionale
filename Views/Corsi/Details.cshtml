@@ -1,0 +1,259 @@
+@model PilatesStudio.Models.ViewModels.CorsoDetailsViewModel
+@{
+    ViewData["Title"] = Model.Corso.Nome;
+    var corso = Model.Corso;
+    var numIscritti = Model.Iscrizioni.Count;
+    var isAtCapacity = numIscritti >= corso.CapacitaMax;
+}
+
+<div class="page-header mb-4">
+    <a asp-action="Index" class="btn btn-outline-secondary btn-sm mb-3">
+        <span class="material-icons-round me-1" style="font-size:16px">arrow_back</span>Torna alla lista
+    </a>
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div>
+            <h1 class="page-title">
+                <span class="material-icons-round me-2">event</span>@corso.Nome
+            </h1>
+            @if (!string.IsNullOrEmpty(corso.Descrizione))
+            {
+                <p class="text-muted mb-0">@corso.Descrizione</p>
+            }
+        </div>
+        <div class="d-flex gap-2">
+            <a asp-action="Edit" asp-route-id="@corso.Id" class="btn btn-outline-secondary">
+                <span class="material-icons-round me-1">edit</span>Modifica
+            </a>
+            <a asp-action="Delete" asp-route-id="@corso.Id" class="btn btn-outline-danger">
+                <span class="material-icons-round me-1">delete</span>Elimina
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+
+    <!-- Colonna sinistra -->
+    <div class="col-lg-8">
+
+        <!-- Riepilogo -->
+        <div class="card mb-4">
+            <div class="card-header d-flex align-items-center gap-2">
+                <span class="material-icons-round">info</span>
+                <h5 class="mb-0">Riepilogo Corso</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label text-muted small">Stato</label>
+                        <div>
+                            @if (corso.Attivo)
+                            {
+                                <span class="badge bg-success-subtle text-success border border-success-subtle d-inline-flex align-items-center gap-1">
+                                    <span class="material-icons-round" style="font-size:14px">check_circle</span>Attivo
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle d-inline-flex align-items-center gap-1">
+                                    <span class="material-icons-round" style="font-size:14px">pause_circle</span>Inattivo
+                                </span>
+                            }
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label text-muted small">Periodo</label>
+                        <div>@corso.DataInizio.ToLocalTime().ToString("dd/MM/yyyy") – @corso.DataFine.ToLocalTime().ToString("dd/MM/yyyy")</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label text-muted small">Capacità</label>
+                        <div>
+                            <span class="badge @(isAtCapacity ? "bg-danger-subtle text-danger border border-danger-subtle" : "bg-primary-subtle text-primary border border-primary-subtle") fs-6">
+                                @numIscritti / @corso.CapacitaMax iscritti
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sessioni settimanali -->
+        <div class="card mb-4">
+            <div class="card-header d-flex align-items-center gap-2">
+                <span class="material-icons-round">schedule</span>
+                <h5 class="mb-0">Sessioni Settimanali</h5>
+            </div>
+            <div class="card-body">
+                @if (!corso.Sessioni.Any())
+                {
+                    <p class="text-muted small mb-0">Nessuna sessione configurata.</p>
+                }
+                else
+                {
+                    <div class="d-flex flex-wrap gap-2">
+                        @foreach (var s in corso.Sessioni.OrderBy(x => x.GiornoSettimana))
+                        {
+                            <div class="card border-primary" style="min-width:160px">
+                                <div class="card-body py-2 px-3">
+                                    <div class="fw-medium text-primary">@s.GiornoNome</div>
+                                    <div class="small">@s.OrarioFormatted</div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Clienti iscritti -->
+        <div class="card">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="material-icons-round">group</span>
+                    <h5 class="mb-0">Clienti Iscritti (@numIscritti)</h5>
+                </div>
+                @if (!isAtCapacity && Model.ClientiIscrivibili.Any())
+                {
+                    <button type="button" class="btn btn-sm btn-outline-primary"
+                            data-bs-toggle="collapse" data-bs-target="#formIscrizione">
+                        <span class="material-icons-round me-1" style="font-size:16px">person_add</span>Iscrivi cliente
+                    </button>
+                }
+                @if (isAtCapacity)
+                {
+                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle d-inline-flex align-items-center gap-1">
+                        <span class="material-icons-round" style="font-size:14px">block</span>Capienza piena
+                    </span>
+                }
+            </div>
+
+            <!-- Form iscrizione -->
+            <div class="collapse @(!isAtCapacity && Model.ClientiIscrivibili.Any() ? "" : "")" id="formIscrizione">
+                <div class="card-body border-bottom bg-light">
+                    <form asp-action="IscriviCliente" method="post" class="d-flex gap-2 align-items-end flex-wrap">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="corsoId" value="@corso.Id" />
+                        <div class="flex-grow-1">
+                            <label class="form-label small mb-1">Seleziona cliente attivo</label>
+                            <select name="clienteId" class="form-select form-select-sm" required>
+                                <option value="">— Scegli un cliente —</option>
+                                @foreach (var c in Model.ClientiIscrivibili)
+                                {
+                                    <option value="@c.Id">@c.NomeCompleto — @c.Email</option>
+                                }
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-sm btn-primary-brand">
+                            <span class="material-icons-round me-1" style="font-size:16px">check</span>Iscrivi
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card-body p-0">
+                @if (!Model.Iscrizioni.Any())
+                {
+                    <div class="text-center py-4 text-muted">
+                        <span class="material-icons-round d-block mb-1" style="font-size:36px">group_off</span>
+                        <p class="small mb-0">Nessun cliente iscritto.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Cliente</th>
+                                    <th>Email</th>
+                                    <th>Iscritto il</th>
+                                    <th class="text-end">Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var isc in Model.Iscrizioni)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <div class="avatar-sm bg-primary-light rounded-circle d-flex align-items-center justify-content-center">
+                                                    <span class="material-icons-round text-primary" style="font-size:18px">person</span>
+                                                </div>
+                                                <div class="fw-medium">@isc.Cliente.NomeCompleto</div>
+                                            </div>
+                                        </td>
+                                        <td><small>@isc.Cliente.Email</small></td>
+                                        <td><small>@isc.DataIscrizione.ToLocalTime().ToString("dd/MM/yyyy")</small></td>
+                                        <td class="text-end">
+                                            <form asp-action="RimuoviIscrizione" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="iscrizioneId" value="@isc.Id" />
+                                                <input type="hidden" name="corsoId" value="@corso.Id" />
+                                                <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                        onclick="return confirm('Rimuovere @isc.Cliente.NomeCompleto dal corso?')">
+                                                    <span class="material-icons-round" style="font-size:16px">person_remove</span>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Colonna destra: insegnanti -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header d-flex align-items-center gap-2">
+                <span class="material-icons-round">school</span>
+                <h5 class="mb-0">Insegnanti Assegnati</h5>
+            </div>
+            <div class="card-body">
+                @if (!corso.TipologieCorsoInsegnanti.Any())
+                {
+                    <p class="text-muted small mb-0">Nessun insegnante assegnato.</p>
+                }
+                else
+                {
+                    foreach (var tci in corso.TipologieCorsoInsegnanti)
+                    {
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <div class="avatar-sm bg-primary-light rounded-circle d-flex align-items-center justify-content-center">
+                                <span class="material-icons-round text-primary" style="font-size:18px">school</span>
+                            </div>
+                            <div>
+                                <div class="fw-medium">@tci.Insegnante.NomeCompleto</div>
+                                @if (!string.IsNullOrEmpty(tci.Insegnante.TitoloDiStudio))
+                                {
+                                    <small class="text-muted">@tci.Insegnante.TitoloDiStudio</small>
+                                }
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+
+        <!-- Info aggiuntive -->
+        <div class="card mt-4">
+            <div class="card-header d-flex align-items-center gap-2">
+                <span class="material-icons-round">history</span>
+                <h5 class="mb-0">Cronologia</h5>
+            </div>
+            <div class="card-body">
+                <dl class="mb-0">
+                    <dt class="small text-muted">Creato il</dt>
+                    <dd class="small">@corso.DataCreazione.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</dd>
+                    <dt class="small text-muted">Ultimo aggiornamento</dt>
+                    <dd class="small mb-0">@corso.UltimoAggiornamento.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+</div>

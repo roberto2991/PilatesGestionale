@@ -57,9 +57,10 @@
                     </li>
                 }
                 <li>
-                    <a href="#" class="nav-link disabled">
+                    <a asp-controller="Corsi" asp-action="Index"
+                       class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Corsi" ? "active" : "")">
                         <span class="material-icons-round">event</span>
-                        <span>Lezioni <span class="badge-soon">Soon</span></span>
+                        <span>Corsi</span>
                     </a>
                 </li>
                 <li>
