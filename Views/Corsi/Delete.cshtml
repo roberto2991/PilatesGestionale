@@ -2,26 +2,37 @@
 @{
     ViewData["Title"] = $"Elimina – {Model.Nome}";
     var numIscritti = Model.Iscrizioni?.Count ?? 0;
+    var haPresenze = ViewBag.HaPresenze as bool? ?? false;
 }
 
 <div class="page-header mb-4">
     <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary btn-sm mb-3">
         <span class="material-icons-round me-1" style="font-size:16px">arrow_back</span>Annulla
     </a>
-    <h1 class="page-title text-danger">
-        <span class="material-icons-round me-2">delete_forever</span>Elimina Corso
+    <h1 class="page-title @(haPresenze ? "text-info" : "text-danger")">
+        <span class="material-icons-round me-2">@(haPresenze ? "inventory_2" : "delete_forever")</span>
+        @(haPresenze ? "Archivia Corso" : "Elimina Corso")
     </h1>
 </div>
 
 <div class="row justify-content-center">
     <div class="col-md-8 col-lg-6">
-        <div class="card border-danger">
-            <div class="card-header bg-danger-subtle d-flex align-items-center gap-2">
-                <span class="material-icons-round text-danger">warning</span>
-                <h5 class="mb-0 text-danger">Conferma eliminazione</h5>
+        <div class="card @(haPresenze ? "border-info" : "border-danger")">
+            <div class="card-header @(haPresenze ? "bg-info-subtle" : "bg-danger-subtle") d-flex align-items-center gap-2">
+                <span class="material-icons-round @(haPresenze ? "text-info" : "text-danger")">@(haPresenze ? "inventory_2" : "warning")</span>
+                <h5 class="mb-0 @(haPresenze ? "text-info" : "text-danger")">@(haPresenze ? "Conferma archiviazione" : "Conferma eliminazione")</h5>
             </div>
             <div class="card-body">
-                <p class="mb-3">Stai per eliminare il corso <strong>@Model.Nome</strong>.</p>
+                <p class="mb-3">
+                    @if (haPresenze)
+                    {
+                        <text>Stai per archiviare il corso <strong>@Model.Nome</strong>.</text>
+                    }
+                    else
+                    {
+                        <text>Stai per eliminare il corso <strong>@Model.Nome</strong>.</text>
+                    }
+                </p>
 
                 <dl class="row mb-3">
                     <dt class="col-sm-5 text-muted small">Periodo</dt>
@@ -44,21 +55,44 @@
                     </dd>
                 </dl>
 
-                <div class="alert alert-danger d-flex align-items-start gap-2">
-                    <span class="material-icons-round mt-1">error</span>
-                    <div>
-                        <strong>Operazione irreversibile.</strong>
-                        Verranno eliminati anche tutte le sessioni settimanali e le iscrizioni dei clienti associate a questo corso.
+                @if (haPresenze)
+                {
+                    <div class="alert alert-info d-flex align-items-start gap-2">
+                        <span class="material-icons-round mt-1">info</span>
+                        <div>
+                            Questo corso ha <strong>presenze registrate</strong>. Per tutelare lo storico
+                            non verrà eliminato fisicamente, ma <strong>archiviato</strong>: i dati di sessioni
+                            e presenze resteranno intatti e consultabili. Il corso verrà disattivato.
+                        </div>
                     </div>
-                </div>
 
-                <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-flex gap-2">
-                    @Html.AntiForgeryToken()
-                    <button type="submit" class="btn btn-danger">
-                        <span class="material-icons-round me-1">delete_forever</span>Elimina definitivamente
-                    </button>
-                    <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary">Annulla</a>
-                </form>
+                    <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-flex gap-2">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-info">
+                            <span class="material-icons-round me-1">inventory_2</span>Archivia corso
+                        </button>
+                        <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary">Annulla</a>
+                    </form>
+                }
+                else
+                {
+                    <div class="alert alert-danger d-flex align-items-start gap-2">
+                        <span class="material-icons-round mt-1">error</span>
+                        <div>
+                            <strong>Operazione irreversibile.</strong>
+                            Verranno eliminate anche tutte le sessioni settimanali, le sessioni in calendario
+                            e le iscrizioni dei clienti associate a questo corso.
+                        </div>
+                    </div>
+
+                    <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-flex gap-2">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-danger">
+                            <span class="material-icons-round me-1">delete_forever</span>Elimina definitivamente
+                        </button>
+                        <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary">Annulla</a>
+                    </form>
+                }
             </div>
         </div>
     </div>

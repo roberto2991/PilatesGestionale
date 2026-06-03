@@ -63,6 +63,7 @@ builder.Services.AddHostedService<EmailRetryService>();
 // Servizi applicativi
 builder.Services.AddScoped<DocumentoPdfService>();
 builder.Services.AddScoped<TokenAttivazioneService>();
+builder.Services.AddScoped<OccorrenzeCorsoService>();
 builder.Services.AddSingleton<PilatesStudio.Services.KioskStateService>();
 
 var app = builder.Build();

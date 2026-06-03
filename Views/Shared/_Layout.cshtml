@@ -30,14 +30,18 @@
                 <span class="brand-text">Pilates Studio</span>
             </div>
             <ul class="sidebar-nav">
-                <li class="nav-label">PRINCIPALE</li>
-                <li>
-                    <a asp-controller="Admin" asp-action="Dashboard"
-                       class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Admin" ? "active" : "")">
-                        <span class="material-icons-round">dashboard</span>
-                        <span>Dashboard</span>
-                    </a>
-                </li>
+                @if (User.IsInRole("Admin"))
+                {
+                        <li class="nav-label">PRINCIPALE</li>
+                        <li>
+                            <a asp-controller="Admin" asp-action="Dashboard"
+                                   class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Admin" ? "active" : "")">
+                                <span class="material-icons-round">dashboard</span>
+                                <span>Dashboard</span>
+                            </a>
+                        </li>
+                }
+                
                 <li class="nav-label">ANAGRAFICHE</li>
                 <li>
                     <a asp-controller="Clienti" asp-action="Index"
