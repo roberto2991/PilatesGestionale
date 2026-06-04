@@ -85,11 +85,18 @@
                             var isAtCapacity = numIscritti >= corso.CapacitaMax;
                             <tr>
                                 <td>
-                                    <div class="fw-medium">@corso.Nome</div>
-                                    @if (!string.IsNullOrEmpty(corso.Descrizione))
-                                    {
-                                        <small class="text-muted">@corso.Descrizione</small>
-                                    }
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="d-inline-block rounded-circle flex-shrink-0"
+                                              style="width:12px;height:12px;background-color:@(string.IsNullOrEmpty(corso.Colore) ? "#3b82f6" : corso.Colore)"
+                                              title="Colore del corso"></span>
+                                        <div>
+                                            <div class="fw-medium">@corso.Nome</div>
+                                            @if (!string.IsNullOrEmpty(corso.Descrizione))
+                                            {
+                                                <small class="text-muted">@corso.Descrizione</small>
+                                            }
+                                        </div>
+                                    </div>
                                 </td>
                                 <td>
                                     <small>

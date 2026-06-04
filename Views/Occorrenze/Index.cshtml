@@ -22,10 +22,13 @@
     <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
         <div>
             <h1 class="page-title">
-                <span class="material-icons-round me-2">calendar_month</span>Sessioni in calendario
+                <span class="material-icons-round me-2">view_list</span>Sessioni del corso
             </h1>
             <p class="text-muted mb-0">@Model.Corso.Nome — @Model.NumeroIscritti iscritti</p>
         </div>
+        <a asp-controller="Calendario" asp-action="Index" asp-route-corsoId="@Model.Corso.Id" class="btn btn-primary-brand">
+            <span class="material-icons-round me-1">calendar_month</span>Vista calendario
+        </a>
     </div>
 </div>
 

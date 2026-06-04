@@ -69,6 +69,13 @@
                     </a>
                 </li>
                 <li>
+                    <a asp-controller="Calendario" asp-action="Index"
+                       class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Calendario" ? "active" : "")">
+                        <span class="material-icons-round">calendar_month</span>
+                        <span>Calendario</span>
+                    </a>
+                </li>
+                <li>
                     <a href="#" class="nav-link disabled">
                         <span class="material-icons-round">card_membership</span>
                         <span>Abbonamenti <span class="badge-soon">Soon</span></span>
