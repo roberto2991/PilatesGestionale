@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PilatesStudio.Data;
@@ -8,7 +9,9 @@ using PilatesStudio.Services;
 
 namespace PilatesStudio.Controllers;
 
-[Authorize(Roles = "Admin")]
+// Lettura (Index/Details) consentita anche alle insegnanti, limitatamente ai corsi assegnati.
+// Le operazioni di scrittura (Create/Edit/Delete/iscrizioni) restano riservate agli Admin.
+[Authorize(Roles = "Admin,Staff,Insegnante")]
 public class CorsiController : Controller
 {
     private const int PageSize = 10;
@@ -16,15 +19,36 @@ public class CorsiController : Controller
     private readonly ApplicationDbContext _db;
     private readonly ILogger<CorsiController> _logger;
     private readonly OccorrenzeCorsoService _occorrenze;
+    private readonly UserManager<ApplicationUser> _userManager;
 
     public CorsiController(
         ApplicationDbContext db,
         ILogger<CorsiController> logger,
-        OccorrenzeCorsoService occorrenze)
+        OccorrenzeCorsoService occorrenze,
+        UserManager<ApplicationUser> userManager)
     {
         _db = db;
         _logger = logger;
         _occorrenze = occorrenze;
+        _userManager = userManager;
+    }
+
+    // ─────────────────────── HELPER PERMESSI INSEGNANTE ───────────────────────
+
+    /// <summary>True se l'utente corrente è un'insegnante senza privilegi Admin/Staff.</summary>
+    private bool IsInsegnanteSemplice() =>
+        User.IsInRole("Insegnante") && !User.IsInRole("Admin") && !User.IsInRole("Staff");
+
+    /// <summary>Id dei corsi assegnati all'insegnante collegata all'utente corrente.</summary>
+    private async Task<List<int>> CorsiAssegnatiAsync()
+    {
+        var userId = _userManager.GetUserId(User);
+        if (userId is null) return new List<int>();
+
+        return await _db.TipologieCorsoInsegnanti
+            .Where(t => t.Insegnante.ApplicationUserId == userId)
+            .Select(t => t.TipologiaCorsoId)
+            .ToListAsync();
     }
 
     // ─────────────────────── INDEX ───────────────────────
@@ -35,6 +59,13 @@ public class CorsiController : Controller
         var query = _db.TipologieCorsi
             .Include(c => c.Sessioni)
             .AsQueryable();
+
+        // L'insegnante vede solo i corsi a lei assegnati.
+        if (IsInsegnanteSemplice())
+        {
+            var assegnati = await CorsiAssegnatiAsync();
+            query = query.Where(c => assegnati.Contains(c.Id));
+        }
 
         if (!string.IsNullOrWhiteSpace(ricerca))
         {
@@ -78,6 +109,10 @@ public class CorsiController : Controller
     [HttpGet]
     public async Task<IActionResult> Details(int id)
     {
+        // L'insegnante può vedere solo i dettagli dei corsi a lei assegnati.
+        if (IsInsegnanteSemplice() && !(await CorsiAssegnatiAsync()).Contains(id))
+            return Forbid();
+
         var corso = await _db.TipologieCorsi
             .Include(c => c.Sessioni)
             .Include(c => c.TipologieCorsoInsegnanti)
@@ -106,6 +141,7 @@ public class CorsiController : Controller
     // ─────────────────────── CREATE ───────────────────────
 
     [HttpGet]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Create()
     {
         var vm = new CorsoCreateViewModel
@@ -117,6 +153,7 @@ public class CorsiController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Create(CorsoCreateViewModel model)
     {
         await ValidateDate(model.DataInizio, model.DataFine, nameof(model.DataFine));
@@ -182,6 +219,7 @@ public class CorsiController : Controller
     // ─────────────────────── EDIT ───────────────────────
 
     [HttpGet]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Edit(int id)
     {
         var corso = await _db.TipologieCorsi
@@ -217,6 +255,7 @@ public class CorsiController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Edit(CorsoEditViewModel model)
     {
         await ValidateDate(model.DataInizio, model.DataFine, nameof(model.DataFine));
@@ -297,6 +336,7 @@ public class CorsiController : Controller
     // ─────────────────────── DELETE ───────────────────────
 
     [HttpGet]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id)
     {
         var corso = await _db.TipologieCorsi
@@ -314,6 +354,7 @@ public class CorsiController : Controller
 
     [HttpPost, ActionName("Delete")]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteConfirmed(int id)
     {
         var corso = await _db.TipologieCorsi.FindAsync(id);
@@ -349,6 +390,7 @@ public class CorsiController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> IscriviCliente(int corsoId, int clienteId)
     {
         var corso = await _db.TipologieCorsi
@@ -389,6 +431,7 @@ public class CorsiController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> RimuoviIscrizione(int iscrizioneId, int corsoId)
     {
         var iscrizione = await _db.IscrizioniCorso
