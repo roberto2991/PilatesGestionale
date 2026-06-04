@@ -1,11 +1,11 @@
-@model PilatesStudio.Models.Insegnante
+@model PilatesStudio.Models.ViewModels.CorsiAssegnatiInsegnante
 @{
     ViewData["Title"] = "Il mio Portale";
 }
 
 <div class="page-header mb-4">
     <h1 class="page-title">
-        <span class="material-icons-round me-2">home</span>Benvenuta, @Model.Nome!
+        <span class="material-icons-round me-2">home</span>Benvenuta, @Model.Insegnante?.NomeCompleto!
     </h1>
     <p class="text-muted">Questa è la tua area personale nel gestionale di Studio Pilates.</p>
 </div>
@@ -21,27 +21,27 @@
             <div class="card-body">
                 <dl class="row mb-0">
                     <dt class="col-sm-5 text-muted small">Nome completo</dt>
-                    <dd class="col-sm-7">@Model.NomeCompleto</dd>
+                    <dd class="col-sm-7">@Model.Insegnante?.NomeCompleto</dd>
 
                     <dt class="col-sm-5 text-muted small">Email</dt>
-                    <dd class="col-sm-7">@Model.Email</dd>
+                    <dd class="col-sm-7">@Model.Insegnante?.Email</dd>
 
-                    @if (!string.IsNullOrEmpty(Model.TitoloDiStudio))
+                    @if (!string.IsNullOrEmpty(Model.Insegnante?.TitoloDiStudio))
                     {
                         <dt class="col-sm-5 text-muted small">Titolo di studio</dt>
-                        <dd class="col-sm-7">@Model.TitoloDiStudio</dd>
+                        <dd class="col-sm-7">@Model.Insegnante?.TitoloDiStudio</dd>
                     }
 
-                    @if (!string.IsNullOrEmpty(Model.Indirizzo))
+                    @if (!string.IsNullOrEmpty(Model.Insegnante?.Indirizzo))
                     {
                         <dt class="col-sm-5 text-muted small">Indirizzo</dt>
-                        <dd class="col-sm-7">@Model.Indirizzo</dd>
+                        <dd class="col-sm-7">@Model.Insegnante?.Indirizzo</dd>
                     }
 
                     <dt class="col-sm-5 text-muted small">Stato contratto</dt>
                     <dd class="col-sm-7">
                         @{
-                            var (cls, icon) = Model.StatoContratto switch
+                            var (cls, icon) = Model.Insegnante?.StatoContratto switch
                             {
                                 PilatesStudio.Models.StatoContrattuale.Attivo => ("success", "check_circle"),
                                 PilatesStudio.Models.StatoContrattuale.Sospeso => ("warning", "pause_circle"),
@@ -50,7 +50,7 @@
                             };
                         }
                         <span class="badge bg-@cls-subtle text-@cls border border-@cls-subtle d-inline-flex align-items-center gap-1">
-                            <span class="material-icons-round" style="font-size:13px">@icon</span>@Model.StatoContratto
+                            <span class="material-icons-round" style="font-size:13px">@icon</span>@Model.Insegnante?.StatoContratto
                         </span>
                     </dd>
                 </dl>
@@ -58,19 +58,43 @@
         </div>
     </div>
 
-    <!-- Placeholder corsi -->
+    <!-- Corsi assegnati -->
     <div class="col-lg-6">
         <div class="card h-100">
             <div class="card-header d-flex align-items-center gap-2">
                 <span class="material-icons-round">fitness_center</span>
                 <h5 class="mb-0">I miei corsi</h5>
             </div>
-            <div class="card-body d-flex flex-column align-items-center justify-content-center text-center py-5">
-                <span class="material-icons-round text-muted mb-2" style="font-size:48px">event_note</span>
-                <p class="text-muted mb-1">I corsi assegnati appariranno qui.</p>
-                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
-                    <span class="material-icons-round me-1" style="font-size:13px">schedule</span>In arrivo
-                </span>
+            <div class="card-body">
+                @if (Model.Corsi == null || Model.Corsi.Count == 0)
+                {
+                    <div class="d-flex flex-column align-items-center justify-content-center text-center py-5">
+                        <span class="material-icons-round text-muted mb-2" style="font-size:48px">event_note</span>
+                        <p class="text-muted mb-1">I corsi assegnati appariranno qui.</p>
+                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                            <span class="material-icons-round me-1" style="font-size:13px">schedule</span>In arrivo
+                        </span>
+                    </div>
+                }
+                else
+                {
+                    <div class="row g-3">
+                        @foreach (var corso in Model.Corsi)
+                        {
+                            <div class="col-md-6 col-lg-4">
+                                <div class="card h-100 border-0 shadow-sm">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-start justify-content-between mb-2">
+                                            <h6 class="card-title mb-0">@corso.Nome</h6>
+                                        </div>
+                                        <p class="text-muted small mb-2">@corso.Descrizione</p>
+                                        <span class="badge bg-primary">Numero Iscritti: @Model.NumeroIscrittiPerCorso.GetValueOrDefault(corso.Id, 0)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
             </div>
         </div>
     </div>
