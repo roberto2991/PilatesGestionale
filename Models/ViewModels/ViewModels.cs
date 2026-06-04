@@ -161,6 +161,14 @@ public class CorsoListViewModel
     public Dictionary<int, int> NumeroIscrittiPerCorso { get; set; } = new();
 }
 
+public class CorsiAssegnatiInsegnante
+{
+    public List<TipologiaCorso> Corsi { get; set; } = new();
+    public Insegnante? Insegnante { get; set; }
+    public Dictionary<int, int> NumeroIscrittiPerCorso { get; set; } = new();
+
+}
+
 public class SessioneCorsoInputModel
 {
     public int GiornoSettimana { get; set; } = 1; // 1 = Lunedì
