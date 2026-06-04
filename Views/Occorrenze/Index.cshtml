@@ -3,6 +3,7 @@
 @{
     ViewData["Title"] = $"Sessioni – {Model.Corso.Nome}";
     var oggi = DateTime.Now.Date;
+    var puoGestireSessioni = User.IsInRole("Admin") || User.IsInRole("Staff");
 }
 
 @functions {
@@ -117,7 +118,7 @@
                                        class="btn btn-sm btn-outline-primary" title="Presenze / dettaglio">
                                         <span class="material-icons-round" style="font-size:16px">fact_check</span>
                                     </a>
-                                    @if (!o.Annullata)
+                                    @if (puoGestireSessioni && !o.Annullata)
                                     {
                                         <form asp-action="Annulla" method="post" class="d-inline">
                                             @Html.AntiForgeryToken()
@@ -128,7 +129,7 @@
                                             </button>
                                         </form>
                                     }
-                                    else
+                                    else if (puoGestireSessioni && o.Annullata)
                                     {
                                         <form asp-action="Ripristina" method="post" class="d-inline">
                                             @Html.AntiForgeryToken()

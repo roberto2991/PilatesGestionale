@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PilatesStudio.Data;
@@ -9,18 +10,46 @@ namespace PilatesStudio.Controllers;
 
 /// <summary>
 /// Gestione delle singole occorrenze (sessioni datate) di un corso e registrazione presenze.
-/// Accessibile a Admin e Staff (istruttrici operanti come Staff).
+/// Admin e Staff hanno accesso completo a tutti i corsi. Le insegnanti possono consultare le
+/// sessioni e registrare le presenze SOLO dei corsi a loro assegnati, senza poterle modificare,
+/// annullare o ripristinare.
 /// </summary>
-[Authorize(Roles = "Admin,Staff")]
+[Authorize(Roles = "Admin,Staff,Insegnante")]
 public class OccorrenzeController : Controller
 {
     private readonly ApplicationDbContext _db;
     private readonly ILogger<OccorrenzeController> _logger;
+    private readonly UserManager<ApplicationUser> _userManager;
 
-    public OccorrenzeController(ApplicationDbContext db, ILogger<OccorrenzeController> logger)
+    public OccorrenzeController(
+        ApplicationDbContext db,
+        ILogger<OccorrenzeController> logger,
+        UserManager<ApplicationUser> userManager)
     {
         _db = db;
         _logger = logger;
+        _userManager = userManager;
+    }
+
+    // ─────────────────────── HELPER PERMESSI INSEGNANTE ───────────────────────
+
+    private bool IsInsegnanteSemplice() =>
+        User.IsInRole("Insegnante") && !User.IsInRole("Admin") && !User.IsInRole("Staff");
+
+    /// <summary>
+    /// Verifica che l'utente corrente possa accedere al corso indicato.
+    /// Admin/Staff: sempre. Insegnante: solo se il corso le è assegnato.
+    /// </summary>
+    private async Task<bool> PuoAccedereAlCorsoAsync(int corsoId)
+    {
+        if (!IsInsegnanteSemplice()) return true;
+
+        var userId = _userManager.GetUserId(User);
+        if (userId is null) return false;
+
+        return await _db.TipologieCorsoInsegnanti
+            .AnyAsync(t => t.TipologiaCorsoId == corsoId &&
+                           t.Insegnante.ApplicationUserId == userId);
     }
 
     // ─────────────────────── INDEX (calendario sessioni del corso) ───────────────────────
@@ -28,6 +57,8 @@ public class OccorrenzeController : Controller
     [HttpGet]
     public async Task<IActionResult> Index(int corsoId, StatoOccorrenza? stato, bool soloFuture = false)
     {
+        if (!await PuoAccedereAlCorsoAsync(corsoId)) return Forbid();
+
         var corso = await _db.TipologieCorsi.FirstOrDefaultAsync(c => c.Id == corsoId);
         if (corso is null) return NotFound();
 
@@ -76,6 +107,7 @@ public class OccorrenzeController : Controller
             .FirstOrDefaultAsync(o => o.Id == id);
 
         if (occorrenza is null) return NotFound();
+        if (!await PuoAccedereAlCorsoAsync(occorrenza.TipologiaCorsoId)) return Forbid();
 
         var vm = await BuildDettaglioAsync(occorrenza);
         return View(vm);
@@ -90,6 +122,7 @@ public class OccorrenzeController : Controller
             .FirstOrDefaultAsync(o => o.Id == id);
 
         if (occorrenza is null) return NotFound();
+        if (!await PuoAccedereAlCorsoAsync(occorrenza.TipologiaCorsoId)) return Forbid();
 
         if (occorrenza.Annullata)
         {
@@ -144,9 +177,11 @@ public class OccorrenzeController : Controller
     }
 
     // ─────────────────────── MODIFICA SINGOLA OCCORRENZA ───────────────────────
+    // Riservate ad Admin/Staff: le insegnanti non possono modificare/annullare le sessioni.
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Admin,Staff")]
     public async Task<IActionResult> Modifica(OccorrenzaEditInputModel model)
     {
         var occorrenza = await _db.OccorrenzeCorso.FindAsync(model.Id);
@@ -180,6 +215,7 @@ public class OccorrenzeController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Admin,Staff")]
     public async Task<IActionResult> Annulla(int id, string? motivo)
     {
         var occorrenza = await _db.OccorrenzeCorso.FindAsync(id);
@@ -198,6 +234,7 @@ public class OccorrenzeController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Admin,Staff")]
     public async Task<IActionResult> Ripristina(int id)
     {
         var occorrenza = await _db.OccorrenzeCorso

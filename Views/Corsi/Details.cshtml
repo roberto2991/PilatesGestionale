@@ -4,6 +4,7 @@
     var corso = Model.Corso;
     var numIscritti = Model.Iscrizioni.Count;
     var isAtCapacity = numIscritti >= corso.CapacitaMax;
+    var puoGestire = User.IsInRole("Admin");
 }
 
 <div class="page-header mb-4">
@@ -24,12 +25,15 @@
             <a asp-controller="Occorrenze" asp-action="Index" asp-route-corsoId="@corso.Id" class="btn btn-primary-brand">
                 <span class="material-icons-round me-1">calendar_month</span>Sessioni e presenze
             </a>
-            <a asp-action="Edit" asp-route-id="@corso.Id" class="btn btn-outline-secondary">
-                <span class="material-icons-round me-1">edit</span>Modifica
-            </a>
-            <a asp-action="Delete" asp-route-id="@corso.Id" class="btn btn-outline-danger">
-                <span class="material-icons-round me-1">delete</span>Elimina
-            </a>
+            @if (puoGestire)
+            {
+                <a asp-action="Edit" asp-route-id="@corso.Id" class="btn btn-outline-secondary">
+                    <span class="material-icons-round me-1">edit</span>Modifica
+                </a>
+                <a asp-action="Delete" asp-route-id="@corso.Id" class="btn btn-outline-danger">
+                    <span class="material-icons-round me-1">delete</span>Elimina
+                </a>
+            }
         </div>
     </div>
 </div>
@@ -121,7 +125,7 @@
                     <span class="material-icons-round">group</span>
                     <h5 class="mb-0">Clienti Iscritti (@numIscritti)</h5>
                 </div>
-                @if (!isAtCapacity && Model.ClientiIscrivibili.Any())
+                @if (puoGestire && !isAtCapacity && Model.ClientiIscrivibili.Any())
                 {
                     <button type="button" class="btn btn-sm btn-outline-primary"
                             data-bs-toggle="collapse" data-bs-target="#formIscrizione">
@@ -137,7 +141,9 @@
             </div>
 
             <!-- Form iscrizione -->
-            <div class="collapse @(!isAtCapacity && Model.ClientiIscrivibili.Any() ? "" : "")" id="formIscrizione">
+            @if (puoGestire)
+            {
+            <div class="collapse" id="formIscrizione">
                 <div class="card-body border-bottom bg-light">
                     <form asp-action="IscriviCliente" method="post" class="d-flex gap-2 align-items-end flex-wrap">
                         @Html.AntiForgeryToken()
@@ -158,6 +164,7 @@
                     </form>
                 </div>
             </div>
+            }
 
             <div class="card-body p-0">
                 @if (!Model.Iscrizioni.Any())
@@ -176,7 +183,10 @@
                                     <th>Cliente</th>
                                     <th>Email</th>
                                     <th>Iscritto il</th>
-                                    <th class="text-end">Azioni</th>
+                                    @if (puoGestire)
+                                    {
+                                        <th class="text-end">Azioni</th>
+                                    }
                                 </tr>
                             </thead>
                             <tbody>
@@ -193,17 +203,20 @@
                                         </td>
                                         <td><small>@isc.Cliente.Email</small></td>
                                         <td><small>@isc.DataIscrizione.ToLocalTime().ToString("dd/MM/yyyy")</small></td>
-                                        <td class="text-end">
-                                            <form asp-action="RimuoviIscrizione" method="post" class="d-inline">
-                                                @Html.AntiForgeryToken()
-                                                <input type="hidden" name="iscrizioneId" value="@isc.Id" />
-                                                <input type="hidden" name="corsoId" value="@corso.Id" />
-                                                <button type="submit" class="btn btn-sm btn-outline-danger"
-                                                        onclick="return confirm('Rimuovere @isc.Cliente.NomeCompleto dal corso?')">
-                                                    <span class="material-icons-round" style="font-size:16px">person_remove</span>
-                                                </button>
-                                            </form>
-                                        </td>
+                                        @if (puoGestire)
+                                        {
+                                            <td class="text-end">
+                                                <form asp-action="RimuoviIscrizione" method="post" class="d-inline">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="iscrizioneId" value="@isc.Id" />
+                                                    <input type="hidden" name="corsoId" value="@corso.Id" />
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                            onclick="return confirm('Rimuovere @isc.Cliente.NomeCompleto dal corso?')">
+                                                        <span class="material-icons-round" style="font-size:16px">person_remove</span>
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        }
                                     </tr>
                                 }
                             </tbody>

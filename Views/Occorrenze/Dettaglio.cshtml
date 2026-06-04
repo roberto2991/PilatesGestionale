@@ -3,6 +3,7 @@
 @{
     var o = Model.Occorrenza;
     ViewData["Title"] = $"Sessione {o.Data:dd/MM/yyyy} – {Model.Corso.Nome}";
+    var puoGestireSessioni = User.IsInRole("Admin") || User.IsInRole("Staff");
 }
 
 <div class="page-header mb-4">
@@ -49,7 +50,7 @@
 
 <div class="row g-4">
     <!-- Registrazione presenze -->
-    <div class="col-lg-8">
+    <div class="col-lg-@(puoGestireSessioni ? "8" : "12")">
         <div class="card">
             <div class="card-header d-flex align-items-center justify-content-between">
                 <div class="d-flex align-items-center gap-2">
@@ -129,7 +130,9 @@
         </div>
     </div>
 
-    <!-- Modifica / azioni sessione -->
+    <!-- Modifica / azioni sessione (solo Admin/Staff) -->
+    @if (puoGestireSessioni)
+    {
     <div class="col-lg-4">
         <div class="card">
             <div class="card-header d-flex align-items-center gap-2">
@@ -191,6 +194,7 @@
             </div>
         </div>
     </div>
+    }
 </div>
 
 @section Scripts {
