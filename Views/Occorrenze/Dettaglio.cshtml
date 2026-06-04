@@ -1,0 +1,202 @@
+@model PilatesStudio.Models.ViewModels.OccorrenzaDettaglioViewModel
+@using PilatesStudio.Models
+@{
+    var o = Model.Occorrenza;
+    ViewData["Title"] = $"Sessione {o.Data:dd/MM/yyyy} – {Model.Corso.Nome}";
+}
+
+<div class="page-header mb-4">
+    <a asp-action="Index" asp-route-corsoId="@Model.Corso.Id" class="btn btn-outline-secondary btn-sm mb-3">
+        <span class="material-icons-round me-1" style="font-size:16px">arrow_back</span>Torna alle sessioni
+    </a>
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div>
+            <h1 class="page-title">
+                <span class="material-icons-round me-2">fact_check</span>@o.GiornoNome @o.Data.ToString("dd/MM/yyyy")
+            </h1>
+            <p class="text-muted mb-0">@Model.Corso.Nome — @o.OrarioFormatted</p>
+        </div>
+        <div>
+            @if (o.Annullata)
+            {
+                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle fs-6">Annullata</span>
+            }
+            else if (o.Stato == StatoOccorrenza.Svolta)
+            {
+                <span class="badge bg-success-subtle text-success border border-success-subtle fs-6">Svolta</span>
+            }
+            else
+            {
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle fs-6">Programmata</span>
+            }
+        </div>
+    </div>
+</div>
+
+@if (o.Annullata)
+{
+    <div class="alert alert-secondary d-flex align-items-center gap-2">
+        <span class="material-icons-round">info</span>
+        <div>
+            Sessione annullata il @o.DataAnnullamento?.ToString("dd/MM/yyyy HH:mm").
+            @if (!string.IsNullOrEmpty(o.MotivoAnnullamento))
+            {
+                <span>Motivo: <em>@o.MotivoAnnullamento</em></span>
+            }
+        </div>
+    </div>
+}
+
+<div class="row g-4">
+    <!-- Registrazione presenze -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="material-icons-round">group</span>
+                    <h5 class="mb-0">Presenze partecipanti</h5>
+                </div>
+                @if (Model.NumRegistrate > 0)
+                {
+                    <span class="badge bg-info-subtle text-info border border-info-subtle">
+                        @Model.NumPresenti presenti / @Model.Partecipanti.Count iscritti
+                    </span>
+                }
+            </div>
+            <div class="card-body">
+                @if (Model.Partecipanti.Count == 0)
+                {
+                    <div class="text-center py-4 text-muted">
+                        <span class="material-icons-round d-block mb-1" style="font-size:36px">group_off</span>
+                        <p class="small mb-0">Nessun cliente iscritto al corso.</p>
+                    </div>
+                }
+                else if (o.Annullata)
+                {
+                    <p class="text-muted small mb-0">Le presenze non sono registrabili su una sessione annullata. Ripristinare la sessione per modificarle.</p>
+                    <ul class="list-group list-group-flush mt-3">
+                        @foreach (var p in Model.Partecipanti)
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                <span>@p.NomeCompleto</span>
+                                @if (p.PresenzaRegistrata)
+                                {
+                                    <span class="badge @(p.Presente ? "bg-success-subtle text-success" : "bg-danger-subtle text-danger")">
+                                        @(p.Presente ? "Presente" : "Assente")
+                                    </span>
+                                }
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <form asp-action="SalvaPresenze" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@o.Id" />
+                        <div class="d-flex justify-content-end mb-2 gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleTutti(true)">Tutti presenti</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleTutti(false)">Azzera</button>
+                        </div>
+                        <div class="list-group list-group-flush">
+                            @foreach (var p in Model.Partecipanti)
+                            {
+                                <label class="list-group-item d-flex align-items-center gap-3 px-0" style="cursor:pointer">
+                                    <input class="form-check-input m-0 chk-presenza" type="checkbox"
+                                           name="presenti" value="@p.ClienteId" @(p.Presente ? "checked" : "") />
+                                    <div class="avatar-sm bg-primary-light rounded-circle d-flex align-items-center justify-content-center">
+                                        <span class="material-icons-round text-primary" style="font-size:18px">person</span>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-medium">@p.NomeCompleto</div>
+                                        <small class="text-muted">@p.Email</small>
+                                    </div>
+                                    @if (p.PresenzaRegistrata)
+                                    {
+                                        <small class="text-muted">registrata</small>
+                                    }
+                                </label>
+                            }
+                        </div>
+                        <div class="d-flex justify-content-end mt-3">
+                            <button type="submit" class="btn btn-primary-brand">
+                                <span class="material-icons-round me-1" style="font-size:18px">save</span>Salva presenze
+                            </button>
+                        </div>
+                    </form>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Modifica / azioni sessione -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header d-flex align-items-center gap-2">
+                <span class="material-icons-round">edit_calendar</span>
+                <h5 class="mb-0">Modifica sessione</h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="Modifica" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="Id" value="@o.Id" />
+                    <div class="mb-3">
+                        <label class="form-label small">Data</label>
+                        <input type="date" name="Data" class="form-control" value="@o.Data.ToString("yyyy-MM-dd")" />
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small">Ora inizio</label>
+                            <input type="time" name="OraInizio" class="form-control" value="@o.OraInizio.ToString(@"hh\:mm")" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Ora fine</label>
+                            <input type="time" name="OraFine" class="form-control" value="@o.OraFine.ToString(@"hh\:mm")" />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Note</label>
+                        <textarea name="Note" class="form-control" rows="2" maxlength="500">@o.Note</textarea>
+                    </div>
+                    <button type="submit" class="btn btn-outline-primary w-100">
+                        <span class="material-icons-round me-1" style="font-size:18px">save</span>Aggiorna
+                    </button>
+                </form>
+
+                <hr />
+
+                @if (!o.Annullata)
+                {
+                    <form asp-action="Annulla" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@o.Id" />
+                        <label class="form-label small">Motivo annullamento (opzionale)</label>
+                        <input type="text" name="motivo" class="form-control mb-2" maxlength="300" placeholder="Es. festività, indisponibilità sala" />
+                        <button type="submit" class="btn btn-outline-danger w-100"
+                                onclick="return confirm('Annullare questa sessione? I dati restano salvati.')">
+                            <span class="material-icons-round me-1" style="font-size:18px">event_busy</span>Annulla sessione
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <form asp-action="Ripristina" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@o.Id" />
+                        <button type="submit" class="btn btn-outline-success w-100">
+                            <span class="material-icons-round me-1" style="font-size:18px">restore</span>Ripristina sessione
+                        </button>
+                    </form>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function toggleTutti(stato) {
+            document.querySelectorAll('.chk-presenza').forEach(c => c.checked = stato);
+        }
+    </script>
+}

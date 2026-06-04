@@ -33,11 +33,21 @@ public class TipologiaCorso
     [Display(Name = "Attivo")]
     public bool Attivo { get; set; } = true;
 
+    /// <summary>
+    /// Corso archiviato: usato quando esiste storico di presenze che ne impedisce
+    /// l'eliminazione fisica. I dati restano intatti ma il corso è "congelato".
+    /// </summary>
+    [Display(Name = "Archiviato")]
+    public bool Archiviato { get; set; } = false;
+
+    public DateTime? DataArchiviazione { get; set; }
+
     public DateTime DataCreazione { get; set; } = DateTime.UtcNow;
     public DateTime UltimoAggiornamento { get; set; } = DateTime.UtcNow;
 
     // Navigation
     public ICollection<SessioneCorso> Sessioni { get; set; } = new List<SessioneCorso>();
+    public ICollection<OccorrenzaCorso> Occorrenze { get; set; } = new List<OccorrenzaCorso>();
     public ICollection<TipologiaCorsoInsegnante> TipologieCorsoInsegnanti { get; set; } = new List<TipologiaCorsoInsegnante>();
     public ICollection<IscrizioneCorso> Iscrizioni { get; set; } = new List<IscrizioneCorso>();
 }

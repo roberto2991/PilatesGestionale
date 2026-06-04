@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using PilatesStudio.Data;
 using PilatesStudio.Models;
 using PilatesStudio.Models.ViewModels;
+using PilatesStudio.Services;
 
 namespace PilatesStudio.Controllers;
 
@@ -14,11 +15,16 @@ public class CorsiController : Controller
 
     private readonly ApplicationDbContext _db;
     private readonly ILogger<CorsiController> _logger;
+    private readonly OccorrenzeCorsoService _occorrenze;
 
-    public CorsiController(ApplicationDbContext db, ILogger<CorsiController> logger)
+    public CorsiController(
+        ApplicationDbContext db,
+        ILogger<CorsiController> logger,
+        OccorrenzeCorsoService occorrenze)
     {
         _db = db;
         _logger = logger;
+        _occorrenze = occorrenze;
     }
 
     // ─────────────────────── INDEX ───────────────────────
@@ -163,7 +169,13 @@ public class CorsiController : Controller
 
         await _db.SaveChangesAsync();
 
-        TempData["Success"] = $"Corso '{corso.Nome}' creato con successo.";
+        // Genera automaticamente le occorrenze (sessioni datate) per l'intero periodo.
+        // Usa le date locali del form per evitare drift di fuso nel calcolo dei giorni.
+        var generate = await _occorrenze.SincronizzaAsync(
+            corso.Id, model.DataInizio, model.DataFine, DateTime.Now);
+        await _db.SaveChangesAsync();
+
+        TempData["Success"] = $"Corso '{corso.Nome}' creato con successo. Generate {generate} sessioni in calendario.";
         return RedirectToAction(nameof(Details), new { id = corso.Id });
     }
 
@@ -272,6 +284,12 @@ public class CorsiController : Controller
 
         await _db.SaveChangesAsync();
 
+        // Riallinea il calendario delle occorrenze al nuovo periodo/orari, preservando lo storico:
+        // aggiunge le sessioni mancanti e rimuove solo quelle future, senza presenze e non annullate.
+        await _occorrenze.SincronizzaAsync(
+            corso.Id, model.DataInizio, model.DataFine, DateTime.Now);
+        await _db.SaveChangesAsync();
+
         TempData["Success"] = $"Corso '{corso.Nome}' aggiornato.";
         return RedirectToAction(nameof(Details), new { id = corso.Id });
     }
@@ -286,6 +304,11 @@ public class CorsiController : Controller
             .FirstOrDefaultAsync(c => c.Id == id);
 
         if (corso is null) return NotFound();
+
+        // Se esistono presenze registrate il corso non è eliminabile fisicamente: verrà archiviato.
+        ViewBag.HaPresenze = await _db.PresenzeCorso
+            .AnyAsync(p => p.OccorrenzaCorso.TipologiaCorsoId == id);
+
         return View(corso);
     }
 
@@ -296,6 +319,25 @@ public class CorsiController : Controller
         var corso = await _db.TipologieCorsi.FindAsync(id);
         if (corso is null) return NotFound();
 
+        // Regola di business: un corso con presenze registrate non può essere eliminato
+        // fisicamente, ma viene archiviato mantenendo intatto tutto lo storico.
+        var haPresenze = await _db.PresenzeCorso
+            .AnyAsync(p => p.OccorrenzaCorso.TipologiaCorsoId == id);
+
+        if (haPresenze)
+        {
+            corso.Archiviato = true;
+            corso.Attivo = false;
+            corso.DataArchiviazione = DateTime.UtcNow;
+            corso.UltimoAggiornamento = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+
+            TempData["Success"] = $"Corso '{corso.Nome}' archiviato: sono presenti dati storici di " +
+                                  "presenze, quindi non è stato eliminato. Tutti i dati restano consultabili.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        // Nessuna presenza: eliminazione fisica (la cascata rimuove occorrenze, sessioni, iscrizioni).
         _db.TipologieCorsi.Remove(corso);
         await _db.SaveChangesAsync();
 

@@ -30,24 +30,29 @@
                 <span class="brand-text">Pilates Studio</span>
             </div>
             <ul class="sidebar-nav">
-                <li class="nav-label">PRINCIPALE</li>
-                <li>
-                    <a asp-controller="Admin" asp-action="Dashboard"
-                       class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Admin" ? "active" : "")">
-                        <span class="material-icons-round">dashboard</span>
-                        <span>Dashboard</span>
-                    </a>
-                </li>
-                <li class="nav-label">ANAGRAFICHE</li>
-                <li>
-                    <a asp-controller="Clienti" asp-action="Index"
-                       class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Clienti" ? "active" : "")">
-                        <span class="material-icons-round">group</span>
-                        <span>Clienti</span>
-                    </a>
-                </li>
                 @if (User.IsInRole("Admin"))
                 {
+                        <li class="nav-label">PRINCIPALE</li>
+                        <li>
+                            <a asp-controller="Admin" asp-action="Dashboard"
+                                   class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Admin" ? "active" : "")">
+                                <span class="material-icons-round">dashboard</span>
+                                <span>Dashboard</span>
+                            </a>
+                        </li>
+                }
+                
+                <li class="nav-label">ANAGRAFICHE</li>
+                
+                @if (User.IsInRole("Admin"))
+                {
+                    <li>
+                        <a asp-controller="Clienti" asp-action="Index"
+                           class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Clienti" ? "active" : "")">
+                            <span class="material-icons-round">group</span>
+                            <span>Clienti</span>
+                        </a>
+                    </li>
                     <li>
                         <a asp-controller="Insegnanti" asp-action="Index"
                            class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Insegnanti" ? "active" : "")">

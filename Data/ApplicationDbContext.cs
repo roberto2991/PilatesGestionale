@@ -20,6 +20,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<SessioneCorso> SessioniCorso { get; set; }
     public DbSet<TipologiaCorsoInsegnante> TipologieCorsoInsegnanti { get; set; }
     public DbSet<IscrizioneCorso> IscrizioniCorso { get; set; }
+    public DbSet<OccorrenzaCorso> OccorrenzeCorso { get; set; }
+    public DbSet<PresenzaCorso> PresenzeCorso { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -115,6 +117,43 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
              .WithMany(c => c.Iscrizioni)
              .HasForeignKey(x => x.TipologiaCorsoId)
              .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Cliente)
+             .WithMany()
+             .HasForeignKey(x => x.ClienteId)
+             .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // OccorrenzaCorso (singola sessione datata)
+        builder.Entity<OccorrenzaCorso>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Stato).HasConversion<string>().HasMaxLength(20);
+            e.Property(x => x.Note).HasMaxLength(500);
+            e.Property(x => x.MotivoAnnullamento).HasMaxLength(300);
+            // Una sola occorrenza per corso+data+ora di inizio
+            e.HasIndex(x => new { x.TipologiaCorsoId, x.Data, x.OraInizio }).IsUnique();
+            // Cascade: eliminando un corso SENZA presenze si rimuovono le occorrenze.
+            // Se invece esistono presenze, il Restrict su PresenzaCorso blocca la cascata
+            // (rete di sicurezza) e il controller archivia il corso anziché eliminarlo.
+            e.HasOne(x => x.TipologiaCorso)
+             .WithMany(c => c.Occorrenze)
+             .HasForeignKey(x => x.TipologiaCorsoId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // PresenzaCorso (dato storico)
+        builder.Entity<PresenzaCorso>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Note).HasMaxLength(300);
+            e.Property(x => x.RegistrataDa).HasMaxLength(256);
+            // Un cliente compare una sola volta per occorrenza
+            e.HasIndex(x => new { x.OccorrenzaCorsoId, x.ClienteId }).IsUnique();
+            // Restrict: le presenze non vengono MAI eliminate a cascata.
+            e.HasOne(x => x.OccorrenzaCorso)
+             .WithMany(o => o.Presenze)
+             .HasForeignKey(x => x.OccorrenzaCorsoId)
+             .OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Cliente)
              .WithMany()
              .HasForeignKey(x => x.ClienteId)

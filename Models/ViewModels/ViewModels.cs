@@ -252,6 +252,70 @@ public class CorsoDetailsViewModel
     public int ClienteIdDaIscrivere { get; set; }
 }
 
+// ─────────────────────── OCCORRENZE / PRESENZE ───────────────────────
+
+/// <summary>Riga di sintesi di una singola occorrenza nell'elenco.</summary>
+public class OccorrenzaRigaViewModel
+{
+    public OccorrenzaCorso Occorrenza { get; set; } = null!;
+    public int NumPresenti { get; set; }
+    public int NumPresenzeRegistrate { get; set; }
+}
+
+public class OccorrenzeListViewModel
+{
+    public TipologiaCorso Corso { get; set; } = null!;
+    public List<OccorrenzaRigaViewModel> Occorrenze { get; set; } = new();
+    public int NumeroIscritti { get; set; }
+
+    // Filtri
+    public StatoOccorrenza? Stato { get; set; }
+    public bool SoloFuture { get; set; }
+}
+
+/// <summary>Riga della lista presenze di una occorrenza (un cliente iscritto).</summary>
+public class RigaPresenzaViewModel
+{
+    public int ClienteId { get; set; }
+    public string NomeCompleto { get; set; } = "";
+    public string Email { get; set; } = "";
+    public bool Presente { get; set; }
+    public bool PresenzaRegistrata { get; set; }
+}
+
+public class OccorrenzaDettaglioViewModel
+{
+    public OccorrenzaCorso Occorrenza { get; set; } = null!;
+    public TipologiaCorso Corso { get; set; } = null!;
+    public List<RigaPresenzaViewModel> Partecipanti { get; set; } = new();
+
+    public int NumPresenti => Partecipanti.Count(p => p.Presente && p.PresenzaRegistrata);
+    public int NumRegistrate => Partecipanti.Count(p => p.PresenzaRegistrata);
+}
+
+/// <summary>Input per la modifica di una singola occorrenza.</summary>
+public class OccorrenzaEditInputModel
+{
+    public int Id { get; set; }
+
+    [Required(ErrorMessage = "La data è obbligatoria")]
+    [DataType(DataType.Date)]
+    [Display(Name = "Data")]
+    public DateTime Data { get; set; }
+
+    [Required(ErrorMessage = "L'ora di inizio è obbligatoria")]
+    [Display(Name = "Ora Inizio")]
+    public string OraInizio { get; set; } = "09:00";
+
+    [Required(ErrorMessage = "L'ora di fine è obbligatoria")]
+    [Display(Name = "Ora Fine")]
+    public string OraFine { get; set; } = "10:00";
+
+    [MaxLength(500)]
+    [Display(Name = "Note")]
+    public string? Note { get; set; }
+}
+
 // ─────────────────────── PRIMO ACCESSO / PASSWORD ───────────────────────
 public class ImpostaPasswordViewModel
 {
