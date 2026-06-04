@@ -43,15 +43,16 @@
                 }
                 
                 <li class="nav-label">ANAGRAFICHE</li>
-                <li>
-                    <a asp-controller="Clienti" asp-action="Index"
-                       class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Clienti" ? "active" : "")">
-                        <span class="material-icons-round">group</span>
-                        <span>Clienti</span>
-                    </a>
-                </li>
+                
                 @if (User.IsInRole("Admin"))
                 {
+                    <li>
+                        <a asp-controller="Clienti" asp-action="Index"
+                           class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Clienti" ? "active" : "")">
+                            <span class="material-icons-round">group</span>
+                            <span>Clienti</span>
+                        </a>
+                    </li>
                     <li>
                         <a asp-controller="Insegnanti" asp-action="Index"
                            class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Insegnanti" ? "active" : "")">
