@@ -176,7 +176,8 @@ public class CorsiController : Controller
             CapacitaMax = model.CapacitaMax,
             DataInizio = model.DataInizio.ToUniversalTime(),
             DataFine = model.DataFine.ToUniversalTime(),
-            Attivo = model.Attivo
+            Attivo = model.Attivo,
+            Colore = model.Colore
         };
 
         _db.TipologieCorsi.Add(corso);
@@ -239,6 +240,7 @@ public class CorsiController : Controller
             DataInizio = corso.DataInizio.ToLocalTime(),
             DataFine = corso.DataFine.ToLocalTime(),
             Attivo = corso.Attivo,
+            Colore = string.IsNullOrWhiteSpace(corso.Colore) ? "#3b82f6" : corso.Colore,
             InsegnantiSelezionati = corso.TipologieCorsoInsegnanti.Select(t => t.InsegnanteId).ToList(),
             Sessioni = corso.Sessioni.Select(s => new SessioneCorsoInputModel
             {
@@ -287,6 +289,7 @@ public class CorsiController : Controller
         corso.DataInizio = model.DataInizio.ToUniversalTime();
         corso.DataFine = model.DataFine.ToUniversalTime();
         corso.Attivo = model.Attivo;
+        corso.Colore = model.Colore;
         corso.UltimoAggiornamento = DateTime.UtcNow;
 
         // Sostituisci sessioni

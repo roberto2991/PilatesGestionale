@@ -54,6 +54,14 @@
                             <input asp-for="DataFine" type="date" class="form-control" />
                             <span asp-validation-for="DataFine" class="text-danger small"></span>
                         </div>
+                        <div class="col-md-4">
+                            <label asp-for="Colore" class="form-label"></label>
+                            <div class="d-flex align-items-center gap-2">
+                                <input asp-for="Colore" type="color" class="form-control form-control-color" title="Colore del corso nel calendario" />
+                                <span class="text-muted small">Usato nel calendario</span>
+                            </div>
+                            <span asp-validation-for="Colore" class="text-danger small"></span>
+                        </div>
                         <div class="col-12">
                             <div class="form-check form-switch">
                                 <input asp-for="Attivo" class="form-check-input" role="switch" />

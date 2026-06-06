@@ -205,6 +205,11 @@ public class CorsoCreateViewModel
     [Display(Name = "Attivo")]
     public bool Attivo { get; set; } = true;
 
+    [MaxLength(7)]
+    [RegularExpression(@"^#(?:[0-9a-fA-F]{6})$", ErrorMessage = "Colore non valido (formato #RRGGBB)")]
+    [Display(Name = "Colore")]
+    public string Colore { get; set; } = "#3b82f6";
+
     public List<int> InsegnantiSelezionati { get; set; } = new();
     public List<SessioneCorsoInputModel> Sessioni { get; set; } = new();
 
@@ -242,6 +247,11 @@ public class CorsoEditViewModel
 
     [Display(Name = "Attivo")]
     public bool Attivo { get; set; } = true;
+
+    [MaxLength(7)]
+    [RegularExpression(@"^#(?:[0-9a-fA-F]{6})$", ErrorMessage = "Colore non valido (formato #RRGGBB)")]
+    [Display(Name = "Colore")]
+    public string Colore { get; set; } = "#3b82f6";
 
     public List<int> InsegnantiSelezionati { get; set; } = new();
     public List<SessioneCorsoInputModel> Sessioni { get; set; } = new();
@@ -299,6 +309,25 @@ public class OccorrenzaDettaglioViewModel
 
     public int NumPresenti => Partecipanti.Count(p => p.Presente && p.PresenzaRegistrata);
     public int NumRegistrate => Partecipanti.Count(p => p.PresenzaRegistrata);
+}
+
+// ─────────────────────── CALENDARIO ───────────────────────
+
+public class CalendarioCorsoDto
+{
+    public int Id { get; set; }
+    public string Nome { get; set; } = "";
+    public string Colore { get; set; } = "#3b82f6";
+}
+
+public class CalendarioViewModel
+{
+    /// <summary>Corsi visibili all'utente (legenda + definizione calendari Toast UI).</summary>
+    public List<CalendarioCorsoDto> Corsi { get; set; } = new();
+
+    /// <summary>Se valorizzato, il calendario è filtrato su un singolo corso.</summary>
+    public int? CorsoIdFiltro { get; set; }
+    public string? NomeCorsoFiltro { get; set; }
 }
 
 /// <summary>Input per la modifica di una singola occorrenza.</summary>

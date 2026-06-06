@@ -1,0 +1,167 @@
+@model PilatesStudio.Models.ViewModels.CalendarioViewModel
+@{
+    ViewData["Title"] = Model.CorsoIdFiltro.HasValue ? $"Calendario – {Model.NomeCorsoFiltro}" : "Calendario";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="https://uicdn.toast.com/calendar/latest/toastui-calendar.min.css" />
+    <style>
+        #calendar { height: 720px; }
+        .cal-legend-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+        .toastui-calendar-weekday-event { cursor: pointer; }
+        .toastui-calendar-event-time { cursor: pointer; }
+    </style>
+}
+
+<div class="page-header mb-4">
+    @if (Model.CorsoIdFiltro.HasValue)
+    {
+        <a asp-controller="Occorrenze" asp-action="Index" asp-route-corsoId="@Model.CorsoIdFiltro"
+           class="btn btn-outline-secondary btn-sm mb-3">
+            <span class="material-icons-round me-1" style="font-size:16px">arrow_back</span>Vista elenco sessioni
+        </a>
+    }
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div>
+            <h1 class="page-title">
+                <span class="material-icons-round me-2">calendar_month</span>Calendario
+            </h1>
+            <p class="text-muted mb-0">
+                @(Model.CorsoIdFiltro.HasValue ? Model.NomeCorsoFiltro : "Tutte le sessioni dei corsi")
+            </p>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div class="btn-group">
+            <button type="button" class="btn btn-outline-secondary" id="btnToday">Oggi</button>
+            <button type="button" class="btn btn-outline-secondary" id="btnPrev" title="Precedente">
+                <span class="material-icons-round" style="font-size:18px">chevron_left</span>
+            </button>
+            <button type="button" class="btn btn-outline-secondary" id="btnNext" title="Successivo">
+                <span class="material-icons-round" style="font-size:18px">chevron_right</span>
+            </button>
+        </div>
+        <h5 class="mb-0 fw-medium" id="rangeLabel"></h5>
+        <div class="btn-group" role="group" aria-label="Vista">
+            <button type="button" class="btn btn-outline-primary active" data-view="month">Mese</button>
+            <button type="button" class="btn btn-outline-primary" data-view="week">Settimana</button>
+            <button type="button" class="btn btn-outline-primary" data-view="day">Giorno</button>
+        </div>
+    </div>
+</div>
+
+@if (Model.Corsi.Count > 1)
+{
+    <div class="card mb-3">
+        <div class="card-body d-flex flex-wrap gap-3">
+            @foreach (var c in Model.Corsi)
+            {
+                <span class="d-inline-flex align-items-center gap-2 small">
+                    <span class="cal-legend-dot" style="background-color:@c.Colore"></span>@c.Nome
+                </span>
+            }
+        </div>
+    </div>
+}
+
+<div class="card">
+    <div class="card-body">
+        <div id="calendar"></div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://uicdn.toast.com/calendar/latest/toastui-calendar.min.js"></script>
+    <script>
+        (function () {
+            const Calendar = tui.Calendar;
+
+            // Calendari (corsi) con i rispettivi colori
+            const calendars = [
+                @foreach (var c in Model.Corsi)
+                {
+                    @:{ id: '@c.Id', name: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(c.Nome)), backgroundColor: '@c.Colore', borderColor: '@c.Colore', dragBackgroundColor: '@c.Colore' },
+                }
+            ];
+
+            const corsoId = @(Model.CorsoIdFiltro?.ToString() ?? "null");
+            const dettaglioUrl = '@Url.Action("Dettaglio", "Occorrenze")';
+            const eventiUrl = '@Url.Action("Eventi", "Calendario")';
+
+            const calendar = new Calendar('#calendar', {
+                defaultView: 'month',
+                usageStatistics: false,
+                isReadOnly: true,
+                useDetailPopup: true,
+                useFormPopup: false,
+                week: {
+                    startDayOfWeek: 1,
+                    hourStart: 7,
+                    hourEnd: 22,
+                    taskView: false,
+                    eventView: ['time']
+                },
+                month: { startDayOfWeek: 1 },
+                calendars: calendars
+            });
+
+            function pad(n) { return String(n).padStart(2, '0'); }
+            function fmtDate(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
+
+            function updateLabel() {
+                const s = calendar.getDateRangeStart().toDate();
+                const e = calendar.getDateRangeEnd().toDate();
+                const opt = { year: 'numeric', month: 'long', day: 'numeric' };
+                const view = calendar.getViewName();
+                if (view === 'day') {
+                    document.getElementById('rangeLabel').textContent =
+                        s.toLocaleDateString('it-IT', opt);
+                } else {
+                    document.getElementById('rangeLabel').textContent =
+                        s.toLocaleDateString('it-IT', opt) + ' – ' + e.toLocaleDateString('it-IT', opt);
+                }
+            }
+
+            function loadEvents() {
+                const s = calendar.getDateRangeStart().toDate();
+                const e = calendar.getDateRangeEnd().toDate();
+                let url = `${eventiUrl}?start=${fmtDate(s)}&end=${fmtDate(e)}`;
+                if (corsoId) { url += `&corsoId=${corsoId}`; }
+
+                fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(r => r.json())
+                    .then(events => {
+                        calendar.clear();
+                        calendar.createEvents(events);
+                    });
+            }
+
+            function refresh() { updateLabel(); loadEvents(); }
+
+            // Navigazione
+            document.getElementById('btnToday').addEventListener('click', () => { calendar.today(); refresh(); });
+            document.getElementById('btnPrev').addEventListener('click', () => { calendar.prev(); refresh(); });
+            document.getElementById('btnNext').addEventListener('click', () => { calendar.next(); refresh(); });
+
+            // Cambio vista
+            document.querySelectorAll('[data-view]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('[data-view]').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    calendar.changeView(btn.dataset.view);
+                    refresh();
+                });
+            });
+
+            // Click su evento → dettaglio occorrenza (i permessi sono rivalidati lato server)
+            calendar.on('clickEvent', ({ event }) => {
+                window.location.href = `${dettaglioUrl}/${event.id}`;
+            });
+
+            refresh();
+        })();
+    </script>
+}

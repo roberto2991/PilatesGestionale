@@ -33,6 +33,12 @@ public class TipologiaCorso
     [Display(Name = "Attivo")]
     public bool Attivo { get; set; } = true;
 
+    /// <summary>Colore identificativo del corso (formato HEX, es. "#3b82f6"), usato nel calendario.</summary>
+    [MaxLength(7)]
+    [RegularExpression(@"^#(?:[0-9a-fA-F]{6})$", ErrorMessage = "Colore non valido (formato #RRGGBB)")]
+    [Display(Name = "Colore")]
+    public string Colore { get; set; } = "#3b82f6";
+
     /// <summary>
     /// Corso archiviato: usato quando esiste storico di presenze che ne impedisce
     /// l'eliminazione fisica. I dati restano intatti ma il corso è "congelato".
