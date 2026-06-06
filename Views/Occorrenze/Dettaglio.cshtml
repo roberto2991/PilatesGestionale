@@ -55,7 +55,7 @@
             <div class="card-header d-flex align-items-center justify-content-between">
                 <div class="d-flex align-items-center gap-2">
                     <span class="material-icons-round">group</span>
-                    <h5 class="mb-0">Presenze partecipanti</h5>
+                    <h5 class="mb-0">Presenti</h5>
                 </div>
                 @if (Model.NumRegistrate > 0)
                 {
@@ -63,6 +63,37 @@
                         @Model.NumPresenti presenti / @Model.Partecipanti.Count iscritti
                     </span>
                 }
+            </div>
+            @if (Model.Partecipanti.Count > 0)
+            {
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item">
+                        @foreach (var p in Model.Partecipanti)
+                        {
+                            @if (p.Presente)
+                            {
+                                <label class="list-group-item d-flex align-items-center gap-3 px-10" style="cursor:pointer">
+                                    <div class="avatar-sm bg-primary-light rounded-circle d-flex align-items-center justify-content-center">
+                                        <span class="material-icons-round text-primary" style="font-size:18px">person</span>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-medium">@p.NomeCompleto</div>
+                                        <small class="text-muted">@p.Email</small>
+                                    </div>
+                                </label>
+                                
+                            }
+                        }
+                        
+                    </li>
+                </ul>
+            }
+            
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="material-icons-round">group</span>
+                    <h5 class="mb-0">Assegna presenze</h5>
+                </div>
             </div>
             <div class="card-body">
                 @if (Model.Partecipanti.Count == 0)
