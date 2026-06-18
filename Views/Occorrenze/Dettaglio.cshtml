@@ -67,25 +67,21 @@
             @if (Model.Partecipanti.Count > 0)
             {
                 <ul class="list-group list-group-flush">
-                    <li class="list-group-item">
                         @foreach (var p in Model.Partecipanti)
                         {
                             @if (p.Presente)
                             {
-                                <label class="list-group-item d-flex align-items-center gap-3 px-10" style="cursor:pointer">
-                                    <div class="avatar-sm bg-primary-light rounded-circle d-flex align-items-center justify-content-center">
-                                        <span class="material-icons-round text-primary" style="font-size:18px">person</span>
-                                    </div>
-                                    <div class="flex-grow-1">
-                                        <div class="fw-medium">@p.NomeCompleto</div>
-                                        <small class="text-muted">@p.Email</small>
-                                    </div>
-                                </label>
-                                
+                                    <label class="list-group-item d-flex align-items-center gap-3 px-10" style="cursor:pointer">
+                                        <div class="avatar-sm bg-primary-light rounded-circle d-flex align-items-center justify-content-center">
+                                            <span class="material-icons-round text-primary" style="font-size:18px">person</span>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <div class="fw-medium">@p.NomeCompleto</div>
+                                            <small class="text-muted">@p.Email</small>
+                                        </div>
+                                    </label>                           
                             }
                         }
-                        
-                    </li>
                 </ul>
             }
             
