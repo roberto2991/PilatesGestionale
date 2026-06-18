@@ -19,4 +19,4 @@ COPY --from=build /app/publish .
 
 EXPOSE 8080
 
-ENTRYPOINT ["dotnet", "PilatesGestionale.dll"]
+ENTRYPOINT ["dotnet", "PilatesStudio.dll"]
