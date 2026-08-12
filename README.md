@@ -3,5 +3,5 @@
 #Demo: 
 https://pilatesgestionale.onrender.com/
 
-#usr:
-#psw:
+#usr: admin@pilatesstudio.it
+#psw: Admin123!
