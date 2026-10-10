@@ -143,6 +143,10 @@ public class OccorrenzeController : Controller
 
         foreach (var clienteId in iscritti)
         {
+            // Le presenze extra non si gestiscono da qui (solo aggiunta/rimozione dedicata)
+            if (presenzeEsistenti.TryGetValue(clienteId, out var esistente) && esistente.IsExtra)
+                continue;
+
             var presente = presentiSet.Contains(clienteId);
 
             if (presenzeEsistenti.TryGetValue(clienteId, out var presenza))
@@ -171,8 +175,128 @@ public class OccorrenzeController : Controller
 
         await _db.SaveChangesAsync();
 
-        var numPresenti = iscritti.Count(presentiSet.Contains);
-        TempData["Success"] = $"Presenze registrate: {numPresenti} presenti su {iscritti.Count} iscritti.";
+        var iscrittiOrdinari = iscritti.Where(i => !(presenzeEsistenti.TryGetValue(i, out var x) && x.IsExtra)).ToList();
+        var numPresenti = iscrittiOrdinari.Count(presentiSet.Contains);
+        TempData["Success"] = $"Presenze registrate: {numPresenti} presenti su {iscrittiOrdinari.Count} iscritti.";
+        return RedirectToAction(nameof(Dettaglio), new { id });
+    }
+
+    // ─────────────────────── PRESENZE EXTRA ───────────────────────
+    // Clienti registrati ma non iscritti al corso. Non toccano mai le iscrizioni.
+    // Stessi permessi di SalvaPresenze (Admin/Staff/Insegnante del corso).
+
+    /// <summary>Autocomplete: clienti attivi non iscritti al corso e non già presenti nella sessione.</summary>
+    [HttpGet]
+    public async Task<IActionResult> CercaClientiExtra(int id, string? q)
+    {
+        var occorrenza = await _db.OccorrenzeCorso.AsNoTracking().FirstOrDefaultAsync(o => o.Id == id);
+        if (occorrenza is null) return NotFound();
+        if (!await PuoAccedereAlCorsoAsync(occorrenza.TipologiaCorsoId)) return Forbid();
+
+        q = q?.Trim();
+        if (string.IsNullOrEmpty(q) || q.Length < 2) return Json(Array.Empty<object>());
+
+        var pattern = $"%{q.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_")}%";
+
+        var risultati = await _db.Clienti
+            .Where(c => c.Attivo)
+            .Where(c => !_db.IscrizioniCorso.Any(i => i.TipologiaCorsoId == occorrenza.TipologiaCorsoId && i.ClienteId == c.Id))
+            .Where(c => !_db.PresenzeCorso.Any(p => p.OccorrenzaCorsoId == id && p.ClienteId == c.Id))
+            .Where(c => EF.Functions.ILike(c.Nome, pattern) ||
+                        EF.Functions.ILike(c.Cognome, pattern) ||
+                        EF.Functions.ILike(c.Nome + " " + c.Cognome, pattern) ||
+                        EF.Functions.ILike(c.Cognome + " " + c.Nome, pattern) ||
+                        EF.Functions.ILike(c.Email, pattern))
+            .OrderBy(c => c.Cognome).ThenBy(c => c.Nome)
+            .Take(10)
+            .Select(c => new { id = c.Id, nome = c.Nome + " " + c.Cognome, email = c.Email })
+            .ToListAsync();
+
+        return Json(risultati);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AggiungiExtra(int id, int clienteId)
+    {
+        var occorrenza = await _db.OccorrenzeCorso.FirstOrDefaultAsync(o => o.Id == id);
+        if (occorrenza is null) return NotFound();
+        if (!await PuoAccedereAlCorsoAsync(occorrenza.TipologiaCorsoId)) return Forbid();
+
+        if (occorrenza.Annullata)
+        {
+            TempData["Error"] = "Impossibile aggiungere presenze su una sessione annullata.";
+            return RedirectToAction(nameof(Dettaglio), new { id });
+        }
+
+        if (!await _db.Clienti.AnyAsync(c => c.Id == clienteId))
+        {
+            TempData["Error"] = "Cliente non trovato.";
+            return RedirectToAction(nameof(Dettaglio), new { id });
+        }
+
+        if (await _db.IscrizioniCorso.AnyAsync(i => i.TipologiaCorsoId == occorrenza.TipologiaCorsoId && i.ClienteId == clienteId))
+        {
+            TempData["Error"] = "Il cliente è già iscritto al corso: registra la presenza dall'elenco iscritti.";
+            return RedirectToAction(nameof(Dettaglio), new { id });
+        }
+
+        if (await _db.PresenzeCorso.AnyAsync(p => p.OccorrenzaCorsoId == id && p.ClienteId == clienteId))
+        {
+            TempData["Error"] = "Il cliente ha già una presenza in questa sessione.";
+            return RedirectToAction(nameof(Dettaglio), new { id });
+        }
+
+        _db.PresenzeCorso.Add(new PresenzaCorso
+        {
+            OccorrenzaCorsoId = id,
+            ClienteId = clienteId,
+            Presente = true,
+            IsExtra = true,
+            DataRegistrazione = DateTime.Now,
+            RegistrataDa = User.Identity?.Name
+        });
+
+        if (occorrenza.Stato == StatoOccorrenza.Programmata)
+            occorrenza.Stato = StatoOccorrenza.Svolta;
+
+        try
+        {
+            await _db.SaveChangesAsync();
+            TempData["Success"] = "Presenza extra aggiunta.";
+        }
+        catch (DbUpdateException ex)
+        {
+            // Indice univoco (sessione, cliente): richiesta concorrente duplicata
+            _logger.LogWarning(ex, "Presenza extra duplicata: occorrenza {Id}, cliente {ClienteId}", id, clienteId);
+            TempData["Error"] = "Il cliente ha già una presenza in questa sessione.";
+        }
+
+        return RedirectToAction(nameof(Dettaglio), new { id });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RimuoviExtra(int id, int presenzaId)
+    {
+        var occorrenza = await _db.OccorrenzeCorso.FirstOrDefaultAsync(o => o.Id == id);
+        if (occorrenza is null) return NotFound();
+        if (!await PuoAccedereAlCorsoAsync(occorrenza.TipologiaCorsoId)) return Forbid();
+
+        if (occorrenza.Annullata)
+        {
+            TempData["Error"] = "Impossibile modificare presenze su una sessione annullata.";
+            return RedirectToAction(nameof(Dettaglio), new { id });
+        }
+
+        var presenza = await _db.PresenzeCorso
+            .FirstOrDefaultAsync(p => p.Id == presenzaId && p.OccorrenzaCorsoId == id && p.IsExtra);
+        if (presenza is null) return NotFound();
+
+        _db.PresenzeCorso.Remove(presenza);
+        await _db.SaveChangesAsync();
+
+        TempData["Success"] = "Presenza extra rimossa.";
         return RedirectToAction(nameof(Dettaglio), new { id });
     }
 
@@ -269,6 +393,25 @@ public class OccorrenzeController : Controller
 
         var presenze = occorrenza.Presenze.ToDictionary(p => p.ClienteId);
 
+        var extra = await _db.PresenzeCorso
+            .Where(p => p.OccorrenzaCorsoId == occorrenza.Id && p.IsExtra)
+            .OrderBy(p => p.Cliente.Cognome).ThenBy(p => p.Cliente.Nome)
+            .Select(p => new RigaPresenzaViewModel
+            {
+                ClienteId = p.ClienteId,
+                NomeCompleto = p.Cliente.Nome + " " + p.Cliente.Cognome,
+                Email = p.Cliente.Email,
+                PresenzaRegistrata = true,
+                Presente = p.Presente,
+                PresenzaId = p.Id,
+                IsExtra = true
+            })
+            .ToListAsync();
+
+        // Un iscritto con presenza extra storica compare solo tra gli extra
+        var idExtra = extra.Select(e => e.ClienteId).ToHashSet();
+        iscritti = iscritti.Where(c => !idExtra.Contains(c.Id)).ToList();
+
         var partecipanti = iscritti.Select(c => new RigaPresenzaViewModel
         {
             ClienteId = c.Id,
@@ -282,7 +425,8 @@ public class OccorrenzeController : Controller
         {
             Occorrenza = occorrenza,
             Corso = occorrenza.TipologiaCorso,
-            Partecipanti = partecipanti
+            Partecipanti = partecipanti,
+            Extra = extra
         };
     }
 }

@@ -98,13 +98,50 @@ public class ClientiController : Controller
     }
 
     // GET: Clienti/Details/5
-    public async Task<IActionResult> Details(int id)
+    public async Task<IActionResult> Details(int id, string? tab, int pagina = 1, bool? extra = null)
     {
+        const int dimensionePagina = 20;
+
         var cliente = await _context.Clienti
             .Include(c => c.Abbonamenti)
             .FirstOrDefaultAsync(c => c.Id == id);
 
         if (cliente == null) return NotFound();
+
+        // Presenze del cliente: proiezione diretta (join su occorrenza e corso, nessun N+1)
+        var queryPresenze = _context.PresenzeCorso
+            .AsNoTracking()
+            .Where(p => p.ClienteId == id && p.Presente);
+        if (extra.HasValue)
+            queryPresenze = queryPresenze.Where(p => p.IsExtra == extra.Value);
+
+        var totale = await queryPresenze.CountAsync();
+        var totalePagine = Math.Max(1, (int)Math.Ceiling(totale / (double)dimensionePagina));
+        pagina = Math.Clamp(pagina, 1, totalePagine);
+
+        var righe = await queryPresenze
+            .OrderByDescending(p => p.OccorrenzaCorso.Data).ThenByDescending(p => p.OccorrenzaCorso.OraInizio)
+            .Skip((pagina - 1) * dimensionePagina)
+            .Take(dimensionePagina)
+            .Select(p => new PresenzaClienteRigaViewModel
+            {
+                Data = p.OccorrenzaCorso.Data,
+                OraInizio = p.OccorrenzaCorso.OraInizio,
+                NomeCorso = p.OccorrenzaCorso.TipologiaCorso.Nome,
+                OccorrenzaId = p.OccorrenzaCorsoId,
+                IsExtra = p.IsExtra
+            })
+            .ToListAsync();
+
+        ViewData["Presenze"] = new PresenzeClienteViewModel
+        {
+            Righe = righe,
+            Pagina = pagina,
+            TotalePagine = totalePagine,
+            Totale = totale,
+            Extra = extra
+        };
+        ViewData["Tab"] = tab;
         ViewData["KioskClienteId"] = _kioskState.PendingClienteId;
         return View(cliente);
     }

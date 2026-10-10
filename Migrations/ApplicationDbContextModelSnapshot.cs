@@ -546,6 +546,11 @@ namespace PilatesStudio.Migrations
                     b.Property<DateTime>("DataRegistrazione")
                         .HasColumnType("timestamp without time zone");
 
+                    b.Property<bool>("IsExtra")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<string>("Note")
                         .HasMaxLength(300)
                         .HasColumnType("character varying(300)");

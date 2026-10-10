@@ -20,6 +20,12 @@ public class PresenzaCorso
     [Display(Name = "Presente")]
     public bool Presente { get; set; }
 
+    /// <summary>
+    /// True se il cliente NON era iscritto al corso al momento della registrazione (presenza "extra").
+    /// Persistito: non va dedotto dalle iscrizioni, che possono cambiare nel tempo.
+    /// </summary>
+    public bool IsExtra { get; set; }
+
     [MaxLength(300)]
     [Display(Name = "Note")]
     public string? Note { get; set; }
