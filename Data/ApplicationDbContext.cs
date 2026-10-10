@@ -147,6 +147,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             e.HasKey(x => x.Id);
             e.Property(x => x.Note).HasMaxLength(300);
             e.Property(x => x.RegistrataDa).HasMaxLength(256);
+            e.Property(x => x.IsExtra).HasDefaultValue(false);
             // Un cliente compare una sola volta per occorrenza
             e.HasIndex(x => new { x.OccorrenzaCorsoId, x.ClienteId }).IsUnique();
             // Restrict: le presenze non vengono MAI eliminate a cascata.

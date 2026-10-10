@@ -64,7 +64,7 @@
                     </span>
                 }
             </div>
-            @if (Model.Partecipanti.Count > 0)
+            @if (Model.Partecipanti.Count > 0 || Model.Extra.Count > 0)
             {
                 <ul class="list-group list-group-flush">
                         @foreach (var p in Model.Partecipanti)
@@ -79,8 +79,35 @@
                                             <div class="fw-medium">@p.NomeCompleto</div>
                                             <small class="text-muted">@p.Email</small>
                                         </div>
-                                    </label>                           
+                                    </label>
                             }
+                        }
+                        @foreach (var p in Model.Extra)
+                        {
+                            <li class="list-group-item d-flex align-items-center gap-3 px-10">
+                                <div class="avatar-sm bg-primary-light rounded-circle d-flex align-items-center justify-content-center">
+                                    <span class="material-icons-round text-primary" style="font-size:18px">person</span>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="fw-medium">
+                                        @p.NomeCompleto
+                                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle ms-1">Extra</span>
+                                    </div>
+                                    <small class="text-muted">@p.Email</small>
+                                </div>
+                                @if (!o.Annullata)
+                                {
+                                    <form asp-action="RimuoviExtra" method="post" class="m-0">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@o.Id" />
+                                        <input type="hidden" name="presenzaId" value="@p.PresenzaId" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Rimuovi presenza extra"
+                                                onclick="return confirm('Rimuovere la presenza extra di @(p.NomeCompleto.Replace("'", "\\'"))?')">
+                                            <span class="material-icons-round" style="font-size:16px">close</span>
+                                        </button>
+                                    </form>
+                                }
+                            </li>
                         }
                 </ul>
             }
@@ -154,6 +181,30 @@
                     </form>
                 }
             </div>
+
+            @if (!o.Annullata)
+            {
+                <div class="card-header d-flex align-items-center gap-2">
+                    <span class="material-icons-round">person_add</span>
+                    <h5 class="mb-0">Aggiungi presenza extra</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small">Cliente registrato ma non iscritto a questo corso. L'iscrizione non viene modificata.</p>
+                    <form asp-action="AggiungiExtra" method="post" id="formExtra" class="position-relative">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@o.Id" />
+                        <input type="hidden" name="clienteId" id="extraClienteId" />
+                        <div class="input-group">
+                            <input type="text" id="extraCerca" class="form-control" autocomplete="off"
+                                   placeholder="Cerca per nome, cognome o email (min. 2 caratteri)" />
+                            <button type="submit" id="extraAggiungi" class="btn btn-primary-brand" disabled>
+                                <span class="material-icons-round me-1" style="font-size:18px">add</span>Aggiungi
+                            </button>
+                        </div>
+                        <div id="extraRisultati" class="list-group position-absolute w-100 shadow-sm" style="z-index:1050;display:none"></div>
+                    </form>
+                </div>
+            }
         </div>
     </div>
 
@@ -229,5 +280,60 @@
         function toggleTutti(stato) {
             document.querySelectorAll('.chk-presenza').forEach(c => c.checked = stato);
         }
+
+        (function () {
+            const input = document.getElementById('extraCerca');
+            if (!input) return;
+            const hidden = document.getElementById('extraClienteId');
+            const btn = document.getElementById('extraAggiungi');
+            const box = document.getElementById('extraRisultati');
+            let timer = null;
+
+            input.addEventListener('input', function () {
+                hidden.value = '';
+                btn.disabled = true;
+                clearTimeout(timer);
+                const q = input.value.trim();
+                if (q.length < 2) { box.style.display = 'none'; return; }
+                timer = setTimeout(async function () {
+                    try {
+                        const res = await fetch('@Html.Raw(Url.Action("CercaClientiExtra", new { id = o.Id, q = "__Q__" }))'.replace('__Q__', encodeURIComponent(q)));
+                        if (!res.ok) return;
+                        const items = await res.json();
+                        box.innerHTML = '';
+                        if (items.length === 0) {
+                            const d = document.createElement('div');
+                            d.className = 'list-group-item text-muted small';
+                            d.textContent = 'Nessun cliente trovato';
+                            box.appendChild(d);
+                        }
+                        items.forEach(function (c) {
+                            const a = document.createElement('button');
+                            a.type = 'button';
+                            a.className = 'list-group-item list-group-item-action';
+                            const n = document.createElement('div');
+                            n.className = 'fw-medium';
+                            n.textContent = c.nome;
+                            const m = document.createElement('small');
+                            m.className = 'text-muted';
+                            m.textContent = c.email;
+                            a.append(n, m);
+                            a.addEventListener('click', function () {
+                                hidden.value = c.id;
+                                input.value = c.nome;
+                                btn.disabled = false;
+                                box.style.display = 'none';
+                            });
+                            box.appendChild(a);
+                        });
+                        box.style.display = 'block';
+                    } catch (e) { /* errore di rete transitorio */ }
+                }, 250);
+            });
+
+            document.addEventListener('click', function (e) {
+                if (!box.contains(e.target) && e.target !== input) box.style.display = 'none';
+            });
+        })();
     </script>
 }

@@ -299,6 +299,8 @@ public class RigaPresenzaViewModel
     public string Email { get; set; } = "";
     public bool Presente { get; set; }
     public bool PresenzaRegistrata { get; set; }
+    public int? PresenzaId { get; set; }
+    public bool IsExtra { get; set; }
 }
 
 public class OccorrenzaDettaglioViewModel
@@ -306,9 +308,30 @@ public class OccorrenzaDettaglioViewModel
     public OccorrenzaCorso Occorrenza { get; set; } = null!;
     public TipologiaCorso Corso { get; set; } = null!;
     public List<RigaPresenzaViewModel> Partecipanti { get; set; } = new();
+    /// <summary>Presenze extra: clienti non iscritti al corso aggiunti a questa sessione.</summary>
+    public List<RigaPresenzaViewModel> Extra { get; set; } = new();
 
     public int NumPresenti => Partecipanti.Count(p => p.Presente && p.PresenzaRegistrata);
     public int NumRegistrate => Partecipanti.Count(p => p.PresenzaRegistrata);
+}
+
+/// <summary>Riga del tab "Presenze" nella scheda cliente.</summary>
+public class PresenzaClienteRigaViewModel
+{
+    public DateTime Data { get; set; }
+    public TimeSpan OraInizio { get; set; }
+    public string NomeCorso { get; set; } = "";
+    public int OccorrenzaId { get; set; }
+    public bool IsExtra { get; set; }
+}
+
+public class PresenzeClienteViewModel
+{
+    public List<PresenzaClienteRigaViewModel> Righe { get; set; } = new();
+    public int Pagina { get; set; } = 1;
+    public int TotalePagine { get; set; } = 1;
+    public int Totale { get; set; }
+    public bool? Extra { get; set; }
 }
 
 // ─────────────────────── CALENDARIO ───────────────────────

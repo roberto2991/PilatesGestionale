@@ -9,6 +9,8 @@
     var kioskClienteId = ViewData["KioskClienteId"] as int?;
     var questoClienteNelKiosk = kioskClienteId == Model.Id;
     var altroClienteNelKiosk = kioskClienteId.HasValue && kioskClienteId != Model.Id;
+    var pres = (PilatesStudio.Models.ViewModels.PresenzeClienteViewModel)ViewData["Presenze"]!;
+    var tabPresenze = (ViewData["Tab"] as string) == "presenze";
 }
 
 <div class="page-header">
@@ -224,6 +226,16 @@
 
     <!-- Colonna Destra: dettagli e abbonamenti -->
     <div class="col-lg-8">
+        <ul class="nav nav-tabs mb-4" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link @(tabPresenze ? "" : "active")" data-bs-toggle="tab" data-bs-target="#tab-scheda" type="button" role="tab">Scheda</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link @(tabPresenze ? "active" : "")" data-bs-toggle="tab" data-bs-target="#tab-presenze" type="button" role="tab">Presenze</button>
+            </li>
+        </ul>
+        <div class="tab-content">
+        <div class="tab-pane fade @(tabPresenze ? "" : "show active")" id="tab-scheda" role="tabpanel">
         <!-- Info completa -->
         <div class="card p-4 mb-4">
             <h6 class="fw-700 mb-4 d-flex align-items-center gap-2" style="font-weight:700">
@@ -315,6 +327,80 @@
                     <div class="small">Nessun abbonamento registrato</div>
                 </div>
             }
+        </div>
+        </div>
+
+        <!-- Presenze -->
+        <div class="tab-pane fade @(tabPresenze ? "show active" : "")" id="tab-presenze" role="tabpanel">
+            <div class="card">
+                <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <span class="d-flex align-items-center gap-2">
+                        <span class="material-icons-round text-primary" style="font-size:20px">fact_check</span>
+                        Presenze (@pres.Totale)
+                    </span>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <a asp-action="Details" asp-route-id="@Model.Id" asp-route-tab="presenze"
+                           class="btn btn-outline-secondary @(pres.Extra == null ? "active" : "")">Tutte</a>
+                        <a asp-action="Details" asp-route-id="@Model.Id" asp-route-tab="presenze" asp-route-extra="false"
+                           class="btn btn-outline-secondary @(pres.Extra == false ? "active" : "")">Ordinarie</a>
+                        <a asp-action="Details" asp-route-id="@Model.Id" asp-route-tab="presenze" asp-route-extra="true"
+                           class="btn btn-outline-secondary @(pres.Extra == true ? "active" : "")">Extra</a>
+                    </div>
+                </div>
+                @if (pres.Righe.Count > 0)
+                {
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Data sessione</th>
+                                    <th>Corso</th>
+                                    <th>Tipo</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var r in pres.Righe)
+                                {
+                                    <tr>
+                                        <td class="small fw-500">@r.Data.ToString("dd/MM/yyyy") <span class="text-muted">@r.OraInizio.ToString(@"hh\:mm")</span></td>
+                                        <td class="small">@r.NomeCorso</td>
+                                        <td>
+                                            @if (r.IsExtra)
+                                            {
+                                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">Extra</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle">Ordinaria</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    @if (pres.TotalePagine > 1)
+                    {
+                        <div class="card-footer d-flex justify-content-between align-items-center">
+                            <small class="text-muted">Pagina @pres.Pagina di @pres.TotalePagine</small>
+                            <div class="btn-group btn-group-sm">
+                                <a asp-action="Details" asp-route-id="@Model.Id" asp-route-tab="presenze" asp-route-extra="@pres.Extra" asp-route-pagina="@(pres.Pagina - 1)"
+                                   class="btn btn-outline-secondary @(pres.Pagina <= 1 ? "disabled" : "")">Precedente</a>
+                                <a asp-action="Details" asp-route-id="@Model.Id" asp-route-tab="presenze" asp-route-extra="@pres.Extra" asp-route-pagina="@(pres.Pagina + 1)"
+                                   class="btn btn-outline-secondary @(pres.Pagina >= pres.TotalePagine ? "disabled" : "")">Successiva</a>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="text-center py-4 text-muted">
+                        <span class="material-icons-round d-block mb-2" style="font-size:36px;opacity:.3">fact_check</span>
+                        <div class="small">Nessuna presenza registrata</div>
+                    </div>
+                }
+            </div>
+        </div>
         </div>
     </div>
 </div>
